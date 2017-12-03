@@ -32,6 +32,7 @@ void thermo_demo(const std::string& file, const std::string& phase, double phi) 
     std::cout << "===============================================\n"; 
     std::cout << "Calculating equilibrium...\n";
     gas -> Cantera::ThermoPhase::equilibrate("HP"); 
+    Cantera::
     std::cout << "Equilibrium T = " << gas -> temperature() << " K" << std::endl; 
 }
 
