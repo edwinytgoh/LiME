@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <fstream>
+#include <omp.h> 
 
 int main()
 {
@@ -18,8 +19,16 @@ int main()
               << gas.get()->report() << std::endl;
     int T = 1000;
     int P = 25 * Cantera::OneAtm;
-    // char X[50];
     double phi = 0.65;
+    double dt = 0.0001, end_time = 10.; // seconds
+    int num_points = (int) std::ceil(end_time / dt); 
+    double* t = (double*) std::malloc(num_points * sizeof(double)); 
+    const std::string outputFile = "br_output_withLimitedMaxStep.txt"; 
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < num_points; i++) {
+        t[i] = i * dt; 
+    }
+
     std::string X = "CH4:" + std::to_string(phi) + ",O2:" + std::to_string(2) + ",N2:" + std::to_string(2. * 0.79/0.21); // composition variable
     
     std::printf("X = %s\n", X.c_str()); 
@@ -34,8 +43,15 @@ int main()
 
     Cantera::ReactorNet reactor_network; 
     reactor_network.addReactor(br); 
-
-    reactor_network.advance(3600.0); 
+    reactor_network.setMaxTimeStep(dt);
+    std::ofstream outputFileStream; 
+    outputFileStream.open(outputFile);
+    for (int i = 0; i < num_points; i++) {
+        std::cout << t[i] << std::endl;
+        reactor_network.advance(t[i]); 
+        outputFileStream << reactor_network.time() << " " << br.temperature() << " " << br.pressure() << " " << br.volume() << " " << br.density() << std::endl;
+    }
+    // reactor_network.advance(3600.0); 
     std::cout << "State of the reactor at t = " << std::to_string(reactor_network.time()) << " seconds " << std::endl;
     std::cout << reactor_network.reactor(0).contents().report();
     return 0;
