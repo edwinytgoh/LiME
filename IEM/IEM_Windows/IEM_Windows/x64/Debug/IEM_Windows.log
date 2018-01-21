@@ -1,0 +1,924 @@
+﻿  stdafx.cpp
+  IEM_Windows.cpp
+  Unknown compiler version - please run the configure tests and report the results
+  
+  Starting pass 1
+  Processed /DEFAULTLIB:msvcprtd
+  Processed /DEFAULTLIB:vcompd
+  Processed /DEFAULTLIB:MSVCRTD
+  Processed /DEFAULTLIB:OLDNAMES
+  
+  Searching libraries
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\kernel32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\user32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\gdi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\winspool.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\comdlg32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\advapi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\shell32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\ole32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\oleaut32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\uuid.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbc32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbccp32.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\msvcprtd.lib:
+        Found "__declspec(dllimport) public: __cdecl std::_Lockit::_Lockit(int)" (__imp_??0_Lockit@std@@QEAA@H@Z)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: __cdecl std::_Lockit::~_Lockit(void)" (__imp_??1_Lockit@std@@QEAA@XZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "int __cdecl std::uncaught_exceptions(void)" (?uncaught_exceptions@std@@YAHXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "void __cdecl std::_Debug_message(wchar_t const *,wchar_t const *,unsigned int)" (?_Debug_message@std@@YAXPEB_W0I@Z)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "void __cdecl std::_Xbad_alloc(void)" (?_Xbad_alloc@std@@YAXXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "void __cdecl std::_Xlength_error(char const *)" (?_Xlength_error@std@@YAXPEBD@Z)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found _Mbrtowc
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: struct _Cvtvec __cdecl std::_Locinfo::_Getcvt(void)const " (__imp_?_Getcvt@_Locinfo@std@@QEBA?AU_Cvtvec@@XZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: char const * __cdecl std::_Locinfo::_Getdays(void)const " (__imp_?_Getdays@_Locinfo@std@@QEBAPEBDXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: char const * __cdecl std::_Locinfo::_Getmonths(void)const " (__imp_?_Getmonths@_Locinfo@std@@QEBAPEBDXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: unsigned short const * __cdecl std::_Locinfo::_W_Getdays(void)const " (__imp_?_W_Getdays@_Locinfo@std@@QEBAPEBGXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: unsigned short const * __cdecl std::_Locinfo::_W_Getmonths(void)const " (__imp_?_W_Getmonths@_Locinfo@std@@QEBAPEBGXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: bool __cdecl std::ios_base::good(void)const " (__imp_?good@ios_base@std@@QEBA_NXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: int __cdecl std::ios_base::flags(void)const " (__imp_?flags@ios_base@std@@QEBAHXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: __int64 __cdecl std::ios_base::width(void)const " (__imp_?width@ios_base@std@@QEBA_JXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: __int64 __cdecl std::ios_base::width(__int64)" (__imp_?width@ios_base@std@@QEAA_J_J@Z)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: int __cdecl std::basic_streambuf<char,struct std::char_traits<char> >::sputc(char)" (__imp_?sputc@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAAHD@Z)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: __int64 __cdecl std::basic_streambuf<char,struct std::char_traits<char> >::sputn(char const *,__int64)" (__imp_?sputn@?$basic_streambuf@DU?$char_traits@D@std@@@std@@QEAA_JPEBD_J@Z)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: void __cdecl std::basic_ios<char,struct std::char_traits<char> >::setstate(int,bool)" (__imp_?setstate@?$basic_ios@DU?$char_traits@D@std@@@std@@QEAAXH_N@Z)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: class std::basic_ostream<char,struct std::char_traits<char> > * __cdecl std::basic_ios<char,struct std::char_traits<char> >::tie(void)const " (__imp_?tie@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBAPEAV?$basic_ostream@DU?$char_traits@D@std@@@2@XZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: class std::basic_streambuf<char,struct std::char_traits<char> > * __cdecl std::basic_ios<char,struct std::char_traits<char> >::rdbuf(void)const " (__imp_?rdbuf@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBAPEAV?$basic_streambuf@DU?$char_traits@D@std@@@2@XZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: char __cdecl std::basic_ios<char,struct std::char_traits<char> >::fill(void)const " (__imp_?fill@?$basic_ios@DU?$char_traits@D@std@@@std@@QEBADXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: void __cdecl std::basic_ostream<char,struct std::char_traits<char> >::_Osfx(void)" (__imp_?_Osfx@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAXXZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) public: class std::basic_ostream<char,struct std::char_traits<char> > & __cdecl std::basic_ostream<char,struct std::char_traits<char> >::flush(void)" (__imp_?flush@?$basic_ostream@DU?$char_traits@D@std@@@std@@QEAAAEAV12@XZ)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found "__declspec(dllimport) class std::basic_ostream<char,struct std::char_traits<char> > std::cout" (__imp_?cout@std@@3V?$basic_ostream@DU?$char_traits@D@std@@@1@A)
+          Referenced in IEM_Windows.obj
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found __IMPORT_DESCRIPTOR_MSVCP140D
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found __NULL_IMPORT_DESCRIPTOR
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+        Found MSVCP140D_NULL_THUNK_DATA
+          Referenced in msvcprtd.lib(MSVCP140D.dll)
+          Loaded msvcprtd.lib(MSVCP140D.dll)
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcompd.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\MSVCRTD.lib:
+        Found "void * __cdecl operator new(unsigned __int64)" (??2@YAPEAX_K@Z)
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(new_scalar.obj)
+        Found "void __cdecl operator delete(void *,unsigned __int64)" (??3@YAXPEAX_K@Z)
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(delete_scalar_size.obj)
+        Found _RTC_CheckStackVars
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(_stack_.obj)
+        Found _RTC_InitBase
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(_init_.obj)
+        Found __GSHandlerCheck
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(_gshandler_.obj)
+        Found __GSHandlerCheck_EH
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(gshandlereh.obj)
+        Found __security_check_cookie
+          Referenced in IEM_Windows.obj
+          Referenced in MSVCRTD.lib(_gshandler_.obj)
+          Loaded MSVCRTD.lib(_amdsecgs_.obj)
+        Found "const type_info::`vftable'" (??_7type_info@@6B@)
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(std_type_info_static.obj)
+        Found __security_cookie
+          Referenced in IEM_Windows.obj
+          Referenced in MSVCRTD.lib(_amdsecgs_.obj)
+          Loaded MSVCRTD.lib(gs_cookie.obj)
+        Found _fltused
+          Referenced in IEM_Windows.obj
+          Loaded MSVCRTD.lib(fltused.obj)
+        Found mainCRTStartup
+          Loaded MSVCRTD.lib(exe_main.obj)
+        Found "void __cdecl __scrt_throw_std_bad_alloc(void)" (?__scrt_throw_std_bad_alloc@@YAXXZ)
+          Referenced in MSVCRTD.lib(new_scalar.obj)
+          Loaded MSVCRTD.lib(throw_bad_alloc.obj)
+        Found "void __cdecl operator delete(void *)" (??3@YAXPEAX@Z)
+          Referenced in MSVCRTD.lib(delete_scalar_size.obj)
+          Loaded MSVCRTD.lib(delete_scalar.obj)
+        Found "void __cdecl _RTC_StackFailure(void *,char const *)" (?_RTC_StackFailure@@YAXPEAXPEBD@Z)
+          Referenced in MSVCRTD.lib(_stack_.obj)
+          Loaded MSVCRTD.lib(_error_.obj)
+        Found _RTC_SetErrorFuncW
+          Referenced in MSVCRTD.lib(_init_.obj)
+          Loaded MSVCRTD.lib(_userapi_.obj)
+        Found __report_gsfailure
+          Referenced in MSVCRTD.lib(_amdsecgs_.obj)
+          Loaded MSVCRTD.lib(gs_report.obj)
+        Found atexit
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(utility.obj)
+        Found __security_init_cookie
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(gs_support.obj)
+        Found _matherr
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(matherr.obj)
+        Found _get_startup_argv_mode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded MSVCRTD.lib(argv_mode.obj)
+        Found _get_startup_commit_mode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(commit_mode.obj)
+        Found _get_startup_file_mode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(file_mode.obj)
+        Found _get_startup_new_mode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(new_mode.obj)
+        Found _get_startup_thread_locale_mode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(thread_locale.obj)
+        Found "void __cdecl __scrt_initialize_type_info(void)" (?__scrt_initialize_type_info@@YAXXZ)
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(tncleanup.obj)
+        Found _should_initialize_environment
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(env_mode.obj)
+        Found _initialize_invalid_parameter_handler
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(invalid_parameter_handler.obj)
+        Found _initialize_denormal_control
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(denormal_control.obj)
+        Found __scrt_initialize_default_local_stdio_options
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(default_local_stdio_options.obj)
+        Found __scrt_is_user_matherr_present
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(matherr_detection.obj)
+        Found __scrt_get_dyn_tls_init_callback
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(dyn_tls_init.obj)
+        Found __scrt_get_dyn_tls_dtor_callback
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(dyn_tls_dtor.obj)
+        Found __scrt_is_managed_app
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(utility_desktop.obj)
+        Found _RTC_Initialize
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(_initsect_.obj)
+        Found _guard_check_icall
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Referenced in MSVCRTD.lib(utility.obj)
+          Referenced in MSVCRTD.lib(_initsect_.obj)
+          Loaded MSVCRTD.lib(checkcfg.obj)
+        Found __xi_a
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded MSVCRTD.lib(initializers.obj)
+  Processed /DEFAULTLIB:kernel32.lib
+   Processed /DISALLOWLIB:msvcrt.lib
+   Processed /DISALLOWLIB:libcmt.lib
+   Processed /DISALLOWLIB:libcmtd.lib
+   Processed /DISALLOWLIB:vcruntime.lib
+  Processed /DEFAULTLIB:vcruntimed.lib
+   Processed /DISALLOWLIB:libvcruntime.lib
+   Processed /DISALLOWLIB:libvcruntimed.lib
+   Processed /DISALLOWLIB:ucrt.lib
+  Processed /DEFAULTLIB:ucrtd.lib
+   Processed /DISALLOWLIB:libucrt.lib
+   Processed /DISALLOWLIB:libucrtd.lib
+        Found "int __cdecl _RTC_GetSrcLine(unsigned char *,wchar_t *,unsigned long,int *,wchar_t *,unsigned long)" (?_RTC_GetSrcLine@@YAHPEAEPEA_WKPEAH1K@Z)
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Loaded MSVCRTD.lib(_pdblkup_.obj)
+        Found __isa_available_init
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded MSVCRTD.lib(_cpu_disp_.obj)
+        Found __scrt_is_ucrt_dll_in_use
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded MSVCRTD.lib(ucrt_detection.obj)
+        Found __guard_check_icall_fptr
+          Referenced in MSVCRTD.lib(checkcfg.obj)
+          Loaded MSVCRTD.lib(guard_support.obj)
+        Found _guard_dispatch_icall_nop
+          Referenced in MSVCRTD.lib(guard_support.obj)
+          Loaded MSVCRTD.lib(_guard_dispatch_.obj)
+        Found __guard_ss_verify_failure_default
+          Referenced in MSVCRTD.lib(guard_support.obj)
+          Loaded MSVCRTD.lib(_rfgfailure_.obj)
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\OLDNAMES.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcruntimed.lib:
+        Found _purecall
+          Referenced in IEM_Windows.obj
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found memcmp
+          Referenced in IEM_Windows.obj
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found memcpy
+          Referenced in IEM_Windows.obj
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found memmove
+          Referenced in IEM_Windows.obj
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found memset
+          Referenced in IEM_Windows.obj
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __std_exception_copy
+          Referenced in IEM_Windows.obj
+          Referenced in MSVCRTD.lib(throw_bad_alloc.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __std_exception_destroy
+          Referenced in IEM_Windows.obj
+          Referenced in MSVCRTD.lib(throw_bad_alloc.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found _CxxThrowException
+          Referenced in IEM_Windows.obj
+          Referenced in MSVCRTD.lib(throw_bad_alloc.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __CxxFrameHandler3
+          Referenced in IEM_Windows.obj
+          Referenced in MSVCRTD.lib(gshandlereh.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __C_specific_handler
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __std_type_info_destroy_list
+          Referenced in MSVCRTD.lib(tncleanup.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __vcrt_GetModuleFileNameW
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __vcrt_GetModuleHandleW
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __vcrt_LoadLibraryExW
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found __IMPORT_DESCRIPTOR_VCRUNTIME140D
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+        Found VCRUNTIME140D_NULL_THUNK_DATA
+          Referenced in vcruntimed.lib(VCRUNTIME140D.dll)
+          Loaded vcruntimed.lib(VCRUNTIME140D.dll)
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\ucrt\x64\ucrtd.lib:
+        Found __imp__invalid_parameter
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp_wcslen
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__ecvt_s
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__dsign
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__dtest
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__ldtest
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found log
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found strlen
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__finite
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__isnan
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__calloc_dbg
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__CrtDbgReportW
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp_localeconv
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __imp__wassert
+          Referenced in IEM_Windows.obj
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _callnewh
+          Referenced in MSVCRTD.lib(new_scalar.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found malloc
+          Referenced in MSVCRTD.lib(new_scalar.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _CrtDbgReport
+          Referenced in MSVCRTD.lib(_init_.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _seh_filter_exe
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _set_app_type
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __setusermatherr
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _configure_narrow_argv
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _initialize_narrow_environment
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _get_initial_narrow_environment
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _initterm
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _initterm_e
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found exit
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _exit
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _set_fmode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __p___argc
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __p___argv
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _cexit
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _c_exit
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _register_thread_local_exe_atexit_callback
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _configthreadlocale
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _set_new_mode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __p__commode
+          Referenced in MSVCRTD.lib(exe_main.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _free_dbg
+          Referenced in MSVCRTD.lib(delete_scalar.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found strcpy_s
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found strcat_s
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __stdio_common_vsprintf_s
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _seh_filter_dll
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _initialize_onexit_table
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _register_onexit_function
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _execute_onexit_table
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _crt_atexit
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _crt_at_quick_exit
+          Referenced in MSVCRTD.lib(utility.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found terminate
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _wmakepath_s
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found _wsplitpath_s
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found wcscpy_s
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found __IMPORT_DESCRIPTOR_ucrtbased
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Loaded ucrtd.lib(ucrtbased.dll)
+        Found ucrtbased_NULL_THUNK_DATA
+          Referenced in ucrtd.lib(ucrtbased.dll)
+          Loaded ucrtd.lib(ucrtbased.dll)
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\kernel32.lib:
+        Found __imp_IsDebuggerPresent
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_RaiseException
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_MultiByteToWideChar
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_WideCharToMultiByte
+          Referenced in MSVCRTD.lib(_error_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_RtlCaptureContext
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_RtlLookupFunctionEntry
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_RtlVirtualUnwind
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_UnhandledExceptionFilter
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_SetUnhandledExceptionFilter
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetCurrentProcess
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_TerminateProcess
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found IsProcessorFeaturePresent
+          Referenced in MSVCRTD.lib(gs_report.obj)
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_QueryPerformanceCounter
+          Referenced in MSVCRTD.lib(gs_support.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetCurrentProcessId
+          Referenced in MSVCRTD.lib(gs_support.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetCurrentThreadId
+          Referenced in MSVCRTD.lib(gs_support.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetSystemTimeAsFileTime
+          Referenced in MSVCRTD.lib(gs_support.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_InitializeSListHead
+          Referenced in MSVCRTD.lib(tncleanup.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetStartupInfoW
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetModuleHandleW
+          Referenced in MSVCRTD.lib(utility_desktop.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetLastError
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_HeapAlloc
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_HeapFree
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetProcessHeap
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_VirtualQuery
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_FreeLibrary
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __imp_GetProcAddress
+          Referenced in MSVCRTD.lib(_pdblkup_.obj)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found __IMPORT_DESCRIPTOR_KERNEL32
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Loaded kernel32.lib(KERNEL32.dll)
+        Found KERNEL32_NULL_THUNK_DATA
+          Referenced in kernel32.lib(KERNEL32.dll)
+          Loaded kernel32.lib(KERNEL32.dll)
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\user32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\gdi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\winspool.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\comdlg32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\advapi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\shell32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\ole32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\oleaut32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\uuid.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbc32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbccp32.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\msvcprtd.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcompd.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\MSVCRTD.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\OLDNAMES.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcruntimed.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\ucrt\x64\ucrtd.lib:
+  
+  Finished searching libraries
+  
+  Searching libraries
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\kernel32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\user32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\gdi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\winspool.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\comdlg32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\advapi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\shell32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\ole32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\oleaut32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\uuid.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbc32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbccp32.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\msvcprtd.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcompd.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\MSVCRTD.lib:
+        Found __scrt_stub_for_acrt_initialize
+          Loaded MSVCRTD.lib(ucrt_stubs.obj)
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\OLDNAMES.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcruntimed.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\ucrt\x64\ucrtd.lib:
+  
+  Finished searching libraries
+  
+  Finished pass 1
+  
+  
+  Searching libraries
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\kernel32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\user32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\gdi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\winspool.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\comdlg32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\advapi32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\shell32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\ole32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\oleaut32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\uuid.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbc32.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbccp32.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\msvcprtd.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcompd.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\MSVCRTD.lib:
+        Found _load_config_used
+          Loaded MSVCRTD.lib(loadcfg.obj)
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\OLDNAMES.lib:
+      Searching C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcruntimed.lib:
+      Searching C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\ucrt\x64\ucrtd.lib:
+  
+  Finished searching libraries
+  
+  Invoking rc.exe:
+   /v
+   /x
+   /fo
+   "C:\Users\edwin\AppData\Local\Temp\lnk{F98760AA-3F4F-4AED-8401-06775081D8D2}.tmp"
+   "C:\Users\edwin\AppData\Local\Temp\lnk{A8C77011-F8CC-4B25-BEE4-87B5B933CE26}.tmp"
+  Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
+  
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  
+  
+  Creating C:\Users\edwin\AppData\Local\Temp\lnk{F98760AA-3F4F-4AED-8401-06775081D8D2}.tmp
+  
+  Using codepage 1252 as default
+  
+  C:\Users\edwin\AppData\Local\Temp\lnk{A8C77011-F8CC-4B25-BEE4-87B5B933CE26}.tmp.
+  Writing 24:1,	lang:0x409,	size 381
+  
+  Invoking cvtres.exe:
+   /machine:amd64
+   /verbose
+   /out:"C:\Users\edwin\AppData\Local\Temp\lnk{FA9F6683-B406-4AD1-A493-42FA0236D891}.tmp"
+   /readonly
+   "C:\Users\edwin\AppData\Local\Temp\lnk{F98760AA-3F4F-4AED-8401-06775081D8D2}.tmp"
+  Microsoft (R) Windows Resource To Object Converter Version 14.12.25834.0
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  
+  adding resource. type:MANIFEST, name:1, language:0x0409, flags:0x30, size:381
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: virtual __cdecl fmt::FormatError::~FormatError(void)" (??1FormatError@fmt@@UEAA@XZ) referenced in function "public: virtual void * __cdecl fmt::FormatError::`scalar deleting destructor'(unsigned int)" (??_GFormatError@fmt@@UEAAPEAXI@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "void __cdecl fmt::internal::report_unknown_type(char,char const *)" (?report_unknown_type@internal@fmt@@YAXDPEBD@Z) referenced in function "private: void __cdecl fmt::BasicWriter<char>::write_double<double>(double,struct fmt::FormatSpec const &)" (??$write_double@N@?$BasicWriter@D@fmt@@AEAAXNAEBUFormatSpec@1@@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "private: struct fmt::internal::Arg __cdecl fmt::internal::FormatterBase::do_get_arg(unsigned int,char const * &)" (?do_get_arg@FormatterBase@internal@fmt@@AEAA?AUArg@23@IAEAPEBD@Z) referenced in function "protected: struct fmt::internal::Arg __cdecl fmt::internal::FormatterBase::get_arg(unsigned int,char const * &)" (?get_arg@FormatterBase@internal@fmt@@IEAA?AUArg@23@IAEAPEBD@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: void __cdecl fmt::internal::ArgMap<char>::init(class fmt::ArgList const &)" (?init@?$ArgMap@D@internal@fmt@@QEAAXAEBVArgList@3@@Z) referenced in function "private: struct fmt::internal::Arg __cdecl fmt::BasicFormatter<char,class fmt::ArgFormatter<char> >::get_arg(class fmt::BasicStringRef<char>,char const * &)" (?get_arg@?$BasicFormatter@DV?$ArgFormatter@D@fmt@@@fmt@@AEAA?AUArg@internal@2@V?$BasicStringRef@D@2@AEAPEBD@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual char const * __cdecl Cantera::CanteraError::what(void)const " (?what@CanteraError@Cantera@@UEBAPEBDXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > __cdecl Cantera::CanteraError::getMessage(void)const " (?getMessage@CanteraError@Cantera@@UEBA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Phase::setMoleFractions(double const * const)" (?setMoleFractions@Phase@Cantera@@UEAAXQEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Phase::setMoleFractions_NoNorm(double const * const)" (?setMoleFractions_NoNorm@Phase@Cantera@@UEAAXQEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Phase::setMassFractions(double const * const)" (?setMassFractions@Phase@Cantera@@UEAAXQEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Phase::setMassFractions_NoNorm(double const * const)" (?setMassFractions_NoNorm@Phase@Cantera@@UEAAXQEBN@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: void __cdecl Cantera::Phase::getConcentrations(double * const)const " (?getConcentrations@Phase@Cantera@@QEBAXQEAN@Z) referenced in function "public: virtual void __cdecl Cantera::IdealGasPhase::getActivityConcentrations(double *)const " (?getActivityConcentrations@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Phase::setConcentrations(double const * const)" (?setConcentrations@Phase@Cantera@@UEAAXQEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Phase::setConcentrationsNoNorm(double const * const)" (?setConcentrationsNoNorm@Phase@Cantera@@UEAAXQEBN@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: double __cdecl Cantera::Phase::molarDensity(void)const " (?molarDensity@Phase@Cantera@@QEBANXZ) referenced in function "public: virtual double __cdecl Cantera::IdealGasPhase::pressure(void)const " (?pressure@IdealGasPhase@Cantera@@UEBANXZ)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: double __cdecl Cantera::Phase::molarVolume(void)const " (?molarVolume@Phase@Cantera@@QEBANXZ) referenced in function "public: virtual double __cdecl Cantera::ThermoPhase::intEnergy_mole(void)const " (?intEnergy_mole@ThermoPhase@Cantera@@UEBANXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Phase::setMolarDensity(double)" (?setMolarDensity@Phase@Cantera@@UEAAXN@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: double __cdecl Cantera::Phase::mean_X(class std::vector<double,class std::allocator<double> > const &)const " (?mean_X@Phase@Cantera@@QEBANAEBV?$vector@NV?$allocator@N@std@@@std@@@Z) referenced in function "public: virtual double __cdecl Cantera::IdealGasPhase::enthalpy_mole(void)const " (?enthalpy_mole@IdealGasPhase@Cantera@@UEBANXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "protected: virtual void __cdecl Cantera::Phase::compositionChanged(void)" (?compositionChanged@Phase@Cantera@@MEAAXXZ)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "void __cdecl Cantera::warn_deprecated(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &)" (?warn_deprecated@Cantera@@YAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z) referenced in function "public: virtual int __cdecl Cantera::IdealGasPhase::eosType(void)const " (?eosType@IdealGasPhase@Cantera@@UEBAHXZ)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "class Cantera::XML_Node * __cdecl Cantera::get_XML_File(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,int)" (?get_XML_File@Cantera@@YAPEAVXML_Node@1@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z) referenced in function "public: __cdecl Cantera::IdealGasMix::IdealGasMix(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (??0IdealGasMix@Cantera@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V23@@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: virtual __cdecl Cantera::ThermoPhase::~ThermoPhase(void)" (??1ThermoPhase@Cantera@@UEAA@XZ) referenced in function "public: virtual __cdecl Cantera::IdealGasPhase::~IdealGasPhase(void)" (??1IdealGasPhase@Cantera@@UEAA@XZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::resetHf298(unsigned __int64)" (?resetHf298@ThermoPhase@Cantera@@UEAAX_K@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual int __cdecl Cantera::ThermoPhase::activityConvention(void)const " (?activityConvention@ThermoPhase@Cantera@@UEBAHXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual int __cdecl Cantera::ThermoPhase::standardStateConvention(void)const " (?standardStateConvention@ThermoPhase@Cantera@@UEBAHXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual double __cdecl Cantera::ThermoPhase::logStandardConc(unsigned __int64)const " (?logStandardConc@ThermoPhase@Cantera@@UEBAN_K@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::getActivities(double *)const " (?getActivities@ThermoPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::getLnActivityCoefficients(double *)const " (?getLnActivityCoefficients@ThermoPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setReferenceComposition(double const * const)" (?setReferenceComposition@ThermoPhase@Cantera@@UEAAXQEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::getReferenceComposition(double * const)const " (?getReferenceComposition@ThermoPhase@Cantera@@UEBAXQEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_TPX(double,double,double const *)" (?setState_TPX@ThermoPhase@Cantera@@UEAAXNNPEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_TPX(double,double,class std::map<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,double,struct std::less<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,class std::allocator<struct std::pair<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const ,double> > > const &)" (?setState_TPX@ThermoPhase@Cantera@@UEAAXNNAEBV?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@NU?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@N@std@@@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_TPX(double,double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &)" (?setState_TPX@ThermoPhase@Cantera@@UEAAXNNAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_TPY(double,double,double const *)" (?setState_TPY@ThermoPhase@Cantera@@UEAAXNNPEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_TPY(double,double,class std::map<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,double,struct std::less<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,class std::allocator<struct std::pair<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const ,double> > > const &)" (?setState_TPY@ThermoPhase@Cantera@@UEAAXNNAEBV?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@NU?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@N@std@@@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_TPY(double,double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &)" (?setState_TPY@ThermoPhase@Cantera@@UEAAXNNAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_TP(double,double)" (?setState_TP@ThermoPhase@Cantera@@UEAAXNN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_PX(double,double *)" (?setState_PX@ThermoPhase@Cantera@@UEAAXNPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_PY(double,double *)" (?setState_PY@ThermoPhase@Cantera@@UEAAXNPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_HP(double,double,double)" (?setState_HP@ThermoPhase@Cantera@@UEAAXNNN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_UV(double,double,double)" (?setState_UV@ThermoPhase@Cantera@@UEAAXNNN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_SP(double,double,double)" (?setState_SP@ThermoPhase@Cantera@@UEAAXNNN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_SV(double,double,double)" (?setState_SV@ThermoPhase@Cantera@@UEAAXNNN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_RPX(double,double,double const *)" (?setState_RPX@ThermoPhase@Cantera@@UEAAXNNPEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_RPX(double,double,class std::map<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,double,struct std::less<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,class std::allocator<struct std::pair<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const ,double> > > const &)" (?setState_RPX@ThermoPhase@Cantera@@UEAAXNNAEBV?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@NU?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@N@std@@@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_RPX(double,double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &)" (?setState_RPX@ThermoPhase@Cantera@@UEAAXNNAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_RPY(double,double,double const *)" (?setState_RPY@ThermoPhase@Cantera@@UEAAXNNPEBN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_RPY(double,double,class std::map<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,double,struct std::less<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,class std::allocator<struct std::pair<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const ,double> > > const &)" (?setState_RPY@ThermoPhase@Cantera@@UEAAXNNAEBV?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@NU?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@N@std@@@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setState_RPY(double,double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &)" (?setState_RPY@ThermoPhase@Cantera@@UEAAXNNAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::modifySpecies(unsigned __int64,class std::shared_ptr<class Cantera::Species>)" (?modifySpecies@ThermoPhase@Cantera@@UEAAX_KV?$shared_ptr@VSpecies@Cantera@@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual class Cantera::MultiSpeciesThermo & __cdecl Cantera::ThermoPhase::speciesThermo(int)" (?speciesThermo@ThermoPhase@Cantera@@UEAAAEAVMultiSpeciesThermo@2@H@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::initThermoFile(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &)" (?initThermoFile@ThermoPhase@Cantera@@UEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::initThermoXML(class Cantera::XML_Node &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &)" (?initThermoXML@ThermoPhase@Cantera@@UEAAXAEAVXML_Node@2@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::initThermo(void)" (?initThermo@ThermoPhase@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::installSlavePhases(class Cantera::XML_Node *)" (?installSlavePhases@ThermoPhase@Cantera@@UEAAXPEAVXML_Node@2@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::setStateFromXML(class Cantera::XML_Node const &)" (?setStateFromXML@ThermoPhase@Cantera@@UEAAXAEBVXML_Node@2@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::invalidateCache(void)" (?invalidateCache@ThermoPhase@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::getdlnActCoeffdlnN(unsigned __int64,double * const)" (?getdlnActCoeffdlnN@ThermoPhase@Cantera@@UEAAX_KQEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::getdlnActCoeffdlnN_numderiv(unsigned __int64,double * const)" (?getdlnActCoeffdlnN_numderiv@ThermoPhase@Cantera@@UEAAX_KQEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > __cdecl Cantera::ThermoPhase::report(bool,double)const " (?report@ThermoPhase@Cantera@@UEBA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_NN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::ThermoPhase::reportCSV(class std::basic_ofstream<char,struct std::char_traits<char> > &)const " (?reportCSV@ThermoPhase@Cantera@@UEBAXAEAV?$basic_ofstream@DU?$char_traits@D@std@@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "protected: virtual void __cdecl Cantera::ThermoPhase::getCsvReportData(class std::vector<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >,class std::allocator<class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > &,class std::vector<class std::vector<double,class std::allocator<double> >,class std::allocator<class std::vector<double,class std::allocator<double> > > > &)const " (?getCsvReportData@ThermoPhase@Cantera@@MEBAXAEAV?$vector@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@@std@@AEAV?$vector@V?$vector@NV?$allocator@N@std@@@std@@V?$allocator@V?$vector@NV?$allocator@N@std@@@std@@@2@@4@@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: __cdecl Cantera::IdealGasPhase::IdealGasPhase(void)" (??0IdealGasPhase@Cantera@@QEAA@XZ) referenced in function "public: __cdecl Cantera::IdealGasMix::IdealGasMix(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (??0IdealGasMix@Cantera@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V23@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual class Cantera::ThermoPhase * __cdecl Cantera::IdealGasPhase::duplMyselfAsThermoPhase(void)const " (?duplMyselfAsThermoPhase@IdealGasPhase@Cantera@@UEBAPEAVThermoPhase@2@XZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual double __cdecl Cantera::IdealGasPhase::entropy_mole(void)const " (?entropy_mole@IdealGasPhase@Cantera@@UEBANXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual double __cdecl Cantera::IdealGasPhase::cp_mole(void)const " (?cp_mole@IdealGasPhase@Cantera@@UEBANXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual double __cdecl Cantera::IdealGasPhase::cv_mole(void)const " (?cv_mole@IdealGasPhase@Cantera@@UEBANXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual double __cdecl Cantera::IdealGasPhase::standardConcentration(unsigned __int64)const " (?standardConcentration@IdealGasPhase@Cantera@@UEBAN_K@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getActivityCoefficients(double *)const " (?getActivityCoefficients@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getChemPotentials(double *)const " (?getChemPotentials@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getPartialMolarEnthalpies(double *)const " (?getPartialMolarEnthalpies@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getPartialMolarEntropies(double *)const " (?getPartialMolarEntropies@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getPartialMolarIntEnergies(double *)const " (?getPartialMolarIntEnergies@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getPartialMolarCp(double *)const " (?getPartialMolarCp@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getPartialMolarVolumes(double *)const " (?getPartialMolarVolumes@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getStandardChemPotentials(double *)const " (?getStandardChemPotentials@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getEnthalpy_RT(double *)const " (?getEnthalpy_RT@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getEntropy_R(double *)const " (?getEntropy_R@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getGibbs_RT(double *)const " (?getGibbs_RT@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getPureGibbs(double *)const " (?getPureGibbs@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getIntEnergy_RT(double *)const " (?getIntEnergy_RT@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getCp_R(double *)const " (?getCp_R@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getStandardVolumes(double *)const " (?getStandardVolumes@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getEnthalpy_RT_ref(double *)const " (?getEnthalpy_RT_ref@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getGibbs_RT_ref(double *)const " (?getGibbs_RT_ref@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getGibbs_ref(double *)const " (?getGibbs_ref@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getEntropy_R_ref(double *)const " (?getEntropy_R_ref@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getIntEnergy_RT_ref(double *)const " (?getIntEnergy_RT_ref@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getCp_R_ref(double *)const " (?getCp_R_ref@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::getStandardVolumes_ref(double *)const " (?getStandardVolumes_ref@IdealGasPhase@Cantera@@UEBAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual bool __cdecl Cantera::IdealGasPhase::addSpecies(class std::shared_ptr<class Cantera::Species>)" (?addSpecies@IdealGasPhase@Cantera@@UEAA_NV?$shared_ptr@VSpecies@Cantera@@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::IdealGasPhase::setToEquilState(double const *)" (?setToEquilState@IdealGasPhase@Cantera@@UEAAXPEBN@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "private: void __cdecl Cantera::IdealGasPhase::_updateThermo(void)const " (?_updateThermo@IdealGasPhase@Cantera@@AEBAXXZ) referenced in function "public: class std::vector<double,class std::allocator<double> > const & __cdecl Cantera::IdealGasPhase::enthalpy_RT_ref(void)const " (?enthalpy_RT_ref@IdealGasPhase@Cantera@@QEBAAEBV?$vector@NV?$allocator@N@std@@@std@@XZ)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: virtual __cdecl Cantera::Kinetics::~Kinetics(void)" (??1Kinetics@Cantera@@UEAA@XZ) referenced in function "public: virtual __cdecl Cantera::BulkKinetics::~BulkKinetics(void)" (??1BulkKinetics@Cantera@@UEAA@XZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::assignShallowPointers(class std::vector<class Cantera::ThermoPhase *,class std::allocator<class Cantera::ThermoPhase *> > const &)" (?assignShallowPointers@Kinetics@Cantera@@UEAAXAEBV?$vector@PEAVThermoPhase@Cantera@@V?$allocator@PEAVThermoPhase@Cantera@@@std@@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getFwdRatesOfProgress(double *)" (?getFwdRatesOfProgress@Kinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getRevRatesOfProgress(double *)" (?getRevRatesOfProgress@Kinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getNetRatesOfProgress(double *)" (?getNetRatesOfProgress@Kinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getReactionDelta(double const *,double *)" (?getReactionDelta@Kinetics@Cantera@@UEAAXPEBNPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getRevReactionDelta(double const *,double *)" (?getRevReactionDelta@Kinetics@Cantera@@UEAAXPEBNPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getCreationRates(double *)" (?getCreationRates@Kinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getDestructionRates(double *)" (?getDestructionRates@Kinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::getNetProductionRates(double *)" (?getNetProductionRates@Kinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual double __cdecl Cantera::Kinetics::reactantStoichCoeff(unsigned __int64,unsigned __int64)const " (?reactantStoichCoeff@Kinetics@Cantera@@UEBAN_K0@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual double __cdecl Cantera::Kinetics::productStoichCoeff(unsigned __int64,unsigned __int64)const " (?productStoichCoeff@Kinetics@Cantera@@UEBAN_K0@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::addPhase(class Cantera::ThermoPhase &)" (?addPhase@Kinetics@Cantera@@UEAAXAEAVThermoPhase@2@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::Kinetics::finalize(void)" (?finalize@Kinetics@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual struct std::pair<unsigned __int64,unsigned __int64> __cdecl Cantera::Kinetics::checkDuplicates(bool)const " (?checkDuplicates@Kinetics@Cantera@@UEBA?AU?$pair@_K_K@std@@_N@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual bool __cdecl Cantera::BulkKinetics::isReversible(unsigned __int64)" (?isReversible@BulkKinetics@Cantera@@UEAA_N_K@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::getDeltaGibbs(double *)" (?getDeltaGibbs@BulkKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::getDeltaEnthalpy(double *)" (?getDeltaEnthalpy@BulkKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::getDeltaEntropy(double *)" (?getDeltaEntropy@BulkKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::getDeltaSSGibbs(double *)" (?getDeltaSSGibbs@BulkKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::getDeltaSSEnthalpy(double *)" (?getDeltaSSEnthalpy@BulkKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::getDeltaSSEntropy(double *)" (?getDeltaSSEntropy@BulkKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::getRevRateConstants(double *,bool)" (?getRevRateConstants@BulkKinetics@Cantera@@UEAAXPEAN_N@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::resizeSpecies(void)" (?resizeSpecies@BulkKinetics@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::BulkKinetics::setMultiplier(unsigned __int64,double)" (?setMultiplier@BulkKinetics@Cantera@@UEAAX_KN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "protected: virtual void __cdecl Cantera::BulkKinetics::addElementaryReaction(class Cantera::ElementaryReaction &)" (?addElementaryReaction@BulkKinetics@Cantera@@MEAAXAEAVElementaryReaction@2@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "protected: virtual void __cdecl Cantera::BulkKinetics::modifyElementaryReaction(unsigned __int64,class Cantera::ElementaryReaction &)" (?modifyElementaryReaction@BulkKinetics@Cantera@@MEAAX_KAEAVElementaryReaction@2@@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: __cdecl Cantera::GasKinetics::GasKinetics(class Cantera::ThermoPhase *)" (??0GasKinetics@Cantera@@QEAA@PEAVThermoPhase@1@@Z) referenced in function "public: __cdecl Cantera::IdealGasMix::IdealGasMix(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (??0IdealGasMix@Cantera@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V23@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual class Cantera::Kinetics * __cdecl Cantera::GasKinetics::duplMyselfAsKinetics(class std::vector<class Cantera::ThermoPhase *,class std::allocator<class Cantera::ThermoPhase *> > const &)const " (?duplMyselfAsKinetics@GasKinetics@Cantera@@UEBAPEAVKinetics@2@AEBV?$vector@PEAVThermoPhase@Cantera@@V?$allocator@PEAVThermoPhase@Cantera@@@std@@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::getEquilibriumConstants(double *)" (?getEquilibriumConstants@GasKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::getFwdRateConstants(double *)" (?getFwdRateConstants@GasKinetics@Cantera@@UEAAXPEAN@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::init(void)" (?init@GasKinetics@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual bool __cdecl Cantera::GasKinetics::addReaction(class std::shared_ptr<class Cantera::Reaction>)" (?addReaction@GasKinetics@Cantera@@UEAA_NV?$shared_ptr@VReaction@Cantera@@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::modifyReaction(unsigned __int64,class std::shared_ptr<class Cantera::Reaction>)" (?modifyReaction@GasKinetics@Cantera@@UEAAX_KV?$shared_ptr@VReaction@Cantera@@@std@@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::invalidateCache(void)" (?invalidateCache@GasKinetics@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::updateROP(void)" (?updateROP@GasKinetics@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::update_rates_T(void)" (?update_rates_T@GasKinetics@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: virtual void __cdecl Cantera::GasKinetics::update_rates_C(void)" (?update_rates_C@GasKinetics@Cantera@@UEAAXXZ)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "bool __cdecl Cantera::buildSolutionFromXML(class Cantera::XML_Node &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class Cantera::ThermoPhase *,class Cantera::Kinetics *)" (?buildSolutionFromXML@Cantera@@YA_NAEAVXML_Node@1@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1PEAVThermoPhase@1@PEAVKinetics@1@@Z) referenced in function "public: __cdecl Cantera::IdealGasMix::IdealGasMix(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > const &,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> >)" (??0IdealGasMix@Cantera@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V23@@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: static int __cdecl fmt::internal::CharTraits<char>::format_float<long double>(char *,unsigned __int64,char const *,unsigned int,int,long double)" (??$format_float@O@?$CharTraits@D@internal@fmt@@SAHPEAD_KPEBDIHO@Z) referenced in function "private: void __cdecl fmt::BasicWriter<char>::write_double<long double>(long double,struct fmt::FormatSpec const &)" (??$write_double@O@?$BasicWriter@D@fmt@@AEAAXOAEBUFormatSpec@1@@Z)
+IEM_Windows.obj : error LNK2019: unresolved external symbol "public: static int __cdecl fmt::internal::CharTraits<char>::format_float<double>(char *,unsigned __int64,char const *,unsigned int,int,double)" (??$format_float@N@?$CharTraits@D@internal@fmt@@SAHPEAD_KPEBDIHN@Z) referenced in function "private: void __cdecl fmt::BasicWriter<char>::write_double<double>(double,struct fmt::FormatSpec const &)" (??$write_double@N@?$BasicWriter@D@fmt@@AEAAXNAEBUFormatSpec@1@@Z)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: static unsigned int const * const fmt::internal::BasicData<void>::POWERS_OF_10_32" (?POWERS_OF_10_32@?$BasicData@X@internal@fmt@@2QBIB)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: static unsigned __int64 const * const fmt::internal::BasicData<void>::POWERS_OF_10_64" (?POWERS_OF_10_64@?$BasicData@X@internal@fmt@@2QB_KB)
+IEM_Windows.obj : error LNK2001: unresolved external symbol "public: static char const * const fmt::internal::BasicData<void>::DIGITS" (?DIGITS@?$BasicData@X@internal@fmt@@2QBDB)
+  
+  Unused libraries:
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\user32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\gdi32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\winspool.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\comdlg32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\advapi32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\shell32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\ole32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\oleaut32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\uuid.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbc32.lib
+    C:\Program Files (x86)\Windows Kits\10\lib\10.0.16299.0\um\x64\odbccp32.lib
+    C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\vcompd.lib
+    C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.12.25827\lib\x64\OLDNAMES.lib
+  
+C:\Users\edwin\Dropbox (GaTech)\BatchPaSR\IEM\IEM_Windows\x64\Debug\IEM_Windows.exe : fatal error LNK1120: 136 unresolved externals
