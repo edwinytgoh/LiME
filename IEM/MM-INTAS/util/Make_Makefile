@@ -1,0 +1,321 @@
+#!/bin/sh
+#---------------------------------------------------------------------------
+# This script assumes a few things.
+# 1) The file 'allfiles.txt' must be available
+#---------------------------------------------------------------------------
+
+
+#---------------------------------------------------------------------------
+# Name and location of input files
+#---------------------------------------------------------------------------
+   ##################################
+   # Name of the program
+   #
+   program='MM-INTAS'
+
+   ##################################
+   # Location of the program
+   #
+   xroot=`pwd`
+   system=`uname`
+   echo system = $system
+
+   objpath='obj_mod'
+   modpath='obj_mod'
+   exepath='../exe'
+
+   ##################################
+   # Check the existence of some directories
+   #
+   if [ ! -d $xroot'/'$objpath ] ; then
+      echo 'Creating directory $objpath'
+      mkdir $xroot'/'$objpath
+   fi
+   if [ ! -d $xroot'/'$modpath ] ; then
+      echo 'Creating directory $modpath'
+      mkdir $xroot'/'$modpath
+   fi
+   if [ ! -d $xroot'/'$exepath ] ; then
+      echo 'Creating directory $exepath'
+      mkdir $xroot'/'$exepath
+   fi
+
+   objdir='$(XROOT)/'$objpath
+   moddir='$(XROOT)/'$modpath
+   exedir='$(XROOT)/'$exepath
+
+   ##################################
+   # Program f90deps (that checks dependencies)
+   #
+   f90deps=$xroot'/../util/f90deps'
+   if [ ! -f $f90deps ] ; then
+      echo ' '
+      echo '========================================================='
+      echo 'First compile f90deps: go to ../util and run Make_f90deps'
+      echo 'If it does not work, edit the script Make_f90deps'
+      echo '========================================================='
+      echo ' '
+      exit 0
+   fi
+
+#---------------------------------------------------------------------------
+# Machine specific compiler flags
+#---------------------------------------------------------------------------
+   ##################################
+   #
+   # Intel Linux NAGware F95
+   #
+   if [ $system = 'Linux' ] ; then
+      compiler='f95'
+      loader='f95'
+
+      precision='-kind=byte -r8'
+      module_location=' -mdir $(MODDIR)'
+      include_dirs='-I $(MODDIR)'
+      user_f_flags='-O0 -C=all -gline $(PRECISION) $(MODULES) $(INCDIRS)'
+      libdirs=' '
+      user_l_flags=$libdirs
+      libs=' '
+
+   ##################################
+   #
+   # Other systems?..
+   #
+   else
+      compiler='f90'
+      loader='f90'
+
+      precision='-r8 -64'
+      module_location=' '
+      include_dirs='-I $(MODDIR)'
+      user_f_flags='-O0 $(PRECISION) $(MODULES) $(INCDIRS)'
+
+      libdirs=' '
+      user_l_flags=$libdirs
+      libs=' '
+   fi
+
+#---------------------------------------------------------------------------
+#---------------------------------------------------------------------------
+# End of user input
+# Usually you don't want to edit from here.
+#---------------------------------------------------------------------------
+#---------------------------------------------------------------------------
+
+   echo '===================================================================='
+   echo "Started script $0"
+   echo '===================================================================='
+
+   cd $xroot
+
+   if [ ! -f allfiles.txt ] ; then
+      echo '***************************************'
+      echo Error: file allfiles.txt does not exist
+      echo '***************************************'
+      exit 1
+   fi
+
+   if [ ! -s allfiles.txt ] ; then
+      echo '***************************************'
+      echo Error: file allfiles.txt has zero size.
+      echo '***************************************'
+      exit 1
+   fi
+
+   #---------------------------------------------------------------------------
+   # Initialisations
+   #---------------------------------------------------------------------------
+   allfiles=`cat allfiles.txt`
+   numsrc=`cat allfiles.txt | wc -l`
+
+   objectf=Makefile.OBJS
+   dependf=Makefile.DEPS
+   compilf=Makefile.COMP
+   rm -f $objectf $dependf $compilf
+
+   #---------------------------------------------------------------------------
+   # Loop over all sourcefiles in all directories
+   #---------------------------------------------------------------------------
+   #((count=1))
+   count=1
+   for sourcefile in $allfiles
+   do
+      echo Now generating Makefile number $count of $numsrc for $sourcefile
+
+      #-------------------------------------------------------------------------
+      # Get generic file name and add to file-list
+      #-------------------------------------------------------------------------
+      genericname=`echo $sourcefile | cut -d'/' -f2 | cut -d'.' -f1`
+      sourcepath=\$\(SRCDIR\)/`echo $sourcefile | cut -d'/' -f1`
+
+      if [ $count = $numsrc ]; then
+         echo '$(OBJDIR)/'$genericname.o    >> $objectf
+      else
+         echo '$(OBJDIR)/'$genericname.o \\ >> $objectf
+      fi
+
+      #-------------------------------------------------------------------------
+      # Get dependencies for this file and write to file
+      #-------------------------------------------------------------------------
+      echo '$(OBJDIR)/'$genericname.o\: \\  >> $dependf
+
+      set `$f90deps < $sourcefile`
+      oldstrings=''
+      while (( $# > 0));
+      do
+         #------------------------------------------------
+         #  if the following string is a colon: skip
+         #------------------------------------------------
+         if (( $# > 1 )); then
+            if test $2 = ":" ; then
+               shift 2
+            elif [ "$1" != "$oldstring" ]; then
+               case $1 in
+                  :          ) ;;
+                  *.f90      ) ;;
+                  mpif.h     ) ;;
+                  f90_unix.o ) ;;
+                  *.inc*     ) echo "  "\$\(INCDIR\)/$1 \\ >> $dependf ;;
+                  *          ) echo "  "\$\(OBJDIR\)/$1 \\ >> $dependf ;;
+               esac
+               oldstring=$1
+               shift 1
+            else
+               shift 1
+            fi
+         #------------------------------------------------
+         #  if the line contains exactly one word
+         #------------------------------------------------
+         elif [ "$1" != "$oldstring" ]; then
+               case $1 in
+                  :          ) ;;
+                  *.f90      ) ;;
+                  mpif.h     ) ;;
+                  f90_unix.o ) ;;
+                  *.inc*     ) echo "  "\$\(INCDIR\)/$1 \\ >> $dependf ;;
+                  *          ) echo "  "\$\(OBJDIR\)/$1 \\ >> $dependf ;;
+               esac
+               oldstring=$1
+               shift 1
+         else
+               shift 1
+         fi
+
+      done
+      echo "  "'$(XROOT)/'$sourcefile >> $dependf
+
+      #-------------------------------------------------------------------------
+      # Get compiler options for all source files and write to file
+      # Here you can optionally choose lower compiler optimisation levels
+      # for certain sourcefiles, overriding the default optimisation.
+      #-------------------------------------------------------------------------
+      case $genericname in
+               *)            finalflags=${optimisation} ;;
+      esac
+      echo '$(OBJDIR)/'$genericname.o\:\; \\ >> $compilf
+      echo $\(F90\) $finalflags \$\(FFLAGS\) -c '$(XROOT)/'$sourcefile \; '\' >> $compilf
+      echo mv -f $genericname.o '$(OBJDIR)' \; '\' >> $compilf
+      echo 'if [ -f *.mod ]'\; 'then mv -f *.mod $(MODDIR)'\; 'fi' >> $compilf
+      echo '' >> $compilf
+
+      ((count=count+1))
+   done
+
+   #---------------------------------------------------------------------------
+   # Now build top Makefile
+   #---------------------------------------------------------------------------
+   echo Creating Top level Makefile in `pwd`
+   makefile=Makefile
+   rm -f ./$makefile
+
+      echo "#............................"           >> $makefile
+      echo "# Makefile for "$program" code"          >> $makefile
+      echo "#............................"           >> $makefile
+      echo "# This is the top makefile for "$program >> $makefile
+      echo "# It was created automatically."         >> $makefile
+      echo "#............................"           >> $makefile
+      echo "#............................"           >> $makefile
+      echo "# Compiler configuration     "           >> $makefile
+      echo "#............................"           >> $makefile
+
+      echo " "                                       >> $makefile
+      echo XROOT = $xroot                            >> $makefile
+
+      echo " "                                       >> $makefile
+      echo PROGRAM       = $program                  >> $makefile
+
+      echo " "                                       >> $makefile
+      echo MODDIR = $moddir                          >> $makefile
+      echo OBJDIR = $objdir                          >> $makefile
+      echo EXEDIR = $exedir                          >> $makefile
+      echo INCDIR = $incdir                          >> $makefile
+
+      echo " "                                       >> $makefile
+      echo F90           = $compiler                 >> $makefile
+      echo PRECISION     = $precision                >> $makefile
+      echo MODULES       = $module_location          >> $makefile
+      echo INCDIRS       = $include_dirs             >> $makefile
+      echo FFLAGS        = $user_f_flags             >> $makefile
+      echo LIBS          = $libs                     >> $makefile
+      echo LD            = $loader                   >> $makefile
+      echo LDFLAGS       = $user_l_flags             >> $makefile
+
+      echo " "                                       >> $makefile
+      echo OBJS = \\                                 >> $makefile
+      cat $objectf                                   >> $makefile
+      echo " "                                       >> $makefile
+
+      echo "#............................"           >> $makefile
+      echo "# Inference rules            "           >> $makefile
+      echo "#............................"           >> $makefile
+      cat <<'EOM' >> $makefile
+
+default:	$(OBJS)
+		@echo "Linking $(PROGRAM) ..."
+		@$(LD) $(LDFLAGS) $(OBJS) -o $(PROGRAM) $(LIBS)
+		@if [ $(EXEDIR) != . ]; then \
+		(echo Moving $(PROGRAM) to $(EXEDIR); \
+		mv -f $(PROGRAM) $(EXEDIR)) ; fi
+
+clean:;		@rm -f $(PROGRAM) $(OBJS)
+
+EOM
+      echo "#............................"        >> $makefile
+      echo "# Compiling rules            "        >> $makefile
+      echo "#............................"        >> $makefile
+
+      echo " "                                    >> $makefile
+      cat $compilf                                >> $makefile
+      echo " "                                    >> $makefile
+
+      echo "#............................"        >> $makefile
+      echo "# Dependencies               "        >> $makefile
+      echo "#............................"        >> $makefile
+
+      echo " "                                    >> $makefile
+      cat $dependf                                >> $makefile
+      echo " "                                    >> $makefile
+
+      echo "#............................"        >> $makefile
+      echo "# End of Makefile            "        >> $makefile
+      echo "#............................"        >> $makefile
+
+   #---------------------------------------------------------------------------
+   # Remove temporary files
+   #---------------------------------------------------------------------------
+   rm -f temp_file temp2_file ftn00 Makefile.*
+
+   #---------------------------------------------------------------------------
+   # Finish succesful
+   #---------------------------------------------------------------------------
+   echo " "
+   echo '===================================================================='
+   echo '==================       READ  THIS       =========================='
+   echo '===================================================================='
+   echo "A Makefile has been generated: you may want to edit it in order to"
+   echo "modify the compiler options."
+   echo "(you may also want to edit the script ../util/Make_Makefile and make"
+   echo " the necessary modifications there before generating the Makefile)"
+   echo '===================================================================='
+   echo " "
+   exit 0
