@@ -6,7 +6,7 @@ import time
 import matplotlib.pylab as plt 
 import pdb 
 # from argparse import ArgumentParser
-# import os.path
+import os.path
 # import pyarrow.parquet as pq
 # import pyarrow as pa
 import multiprocessing
@@ -442,40 +442,90 @@ class BatchPaSR(object):
         self.updateState()
         self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
 
-# if __name__ == '__main__':
-#     # for j in range(1,16):
-#     timeList = []
-#     for i in range(0,2):
-#         g1 = ct.Solution('gri30.xml');
-#         g2 = ct.Solution('gri30.xml');
-#         g1.TPX = 1500, 25*ct.one_atm, g1.X;
-#         g2.TPX = 1200, 25*ct.one_atm, g2.X;
-#         g1.set_equivalence_ratio(0.8, {'CH4':1.0}, {'N2':0.79, 'O2':0.21})
-#         g2.set_equivalence_ratio(0.8, {'CH4':1.0}, {'N2':0.79, 'O2':0.21})
-#         p1 = Particle.fromGas(g1);
-#         p2 = Particle.fromGas(g2);
-#         particle_list = [Particle.fromGas(g1) for _ in range(0,4)]
-#         t1 = time.time();
-#         t = np.arange(0, 10*1e-3, 0.01*1e-3)
-#         bp = BatchPaSR(particle_list, dt=t[1]-t[0], N_MAX = 20);
-#         [bp.react(parallel=True) for _ in t]
-#         t2 = time.time();
-#         timeList.append(t2-t1)
-#         print("Run {0:d}: {1:.2f} seconds".format(i, t2-t1))
-#         # bp.particle_list[0].get_timeHistory(dataFrame=True).to_clipboard();
-#         print("Average time taken to run BatchPaSR of size {0:02d} for {1:04d} timesteps in series: {2:06.3f} seconds".format(bp.N, len(t), np.mean(np.array(timeList))))
-    # pdb.set_trace()
-    # bp.insert(p2)
-    # [bp.react() for _ in t]
-    # df = bp.particle_list[0].get_timeHistory(dataFrame=True)
-    # df2 = bp.particle_list[1].get_timeHistory(dataFrame=True)
-    # df2.to_clipboard()
-    # df.append(bp.particle_list[0].get_timeHistory(dataFrame=True))
+def runFlame(gas):
+    # Simulation parameters
+    width = 0.06  # m
+    # Flame object
+    f = ct.FreeFlame(gas, width=width)
+    f.set_refine_criteria(ratio=2, slope=0.01, curve=0.01)
+    f.transport_model = 'Multi'
+    f.solve(loglevel=0, auto=True, refine_grid=True)
+    
 
+def mix(streams, mdots, mech="gri30.xml", P=25*101325):
+    # Create mixer gas: 
+    mixerGas = ct.Solution(mech) 
+    mixerGas.TPX = [300, P, 'H2:1']
+    
+    # Create reactor with CHEMISTRY DISABLED: 
+    mixer = ct.ConstPressureReactor(mixerGas) 
+    mixer.chemistry_enabled = False # distable chemistry 
+    
+    # For each stream (and given mass flow rate), connect mass flow controller to mixer: 
+    mfcs = [ct.MassFlowController(ct.Reservoir(streams[i]), mixer, mdot=mdots[i]) for i in range(0,len(streams))]
+    
+    exhaust = ct.Reservoir(mixerGas) 
+    exhaust_mfc = ct.MassFlowController(mixer, exhaust, mdot=sum(mdots)) 
+    
+    rn = ct.ReactorNet([mixer]) 
+    rn.advance_to_steady_state() 
+    
+    return mixer.thermo
+
+def premix(phi=0.4, fuel={'CH4':1}, ox={'N2':0.79, 'O2':0.21}, mech='gri30.xml', P=25*101325, T_fuel=300, T_ox=650, M_total=1):
+    
+    air = ct.Solution(mech)
+    air.TPX = [T_ox, P, ox]
+    fuelGas = ct.Solution(mech)
+    fuelGas.TPX = T_fuel, P, fuel
+    
+    # Temporary ThermoPhase object to get mass flow rates:
+    temp = ct.Solution('gri30.xml')
+    temp.set_equivalence_ratio(phi, fuel, ox)
+    mdot_fuel = M_total * sum(temp[fuel.keys()].Y)
+    mdot_ox = M_total * sum(temp[ox.keys()].Y)
+
+    # Output mixer gas: 
+    return mix([fuelGas, air], [mdot_fuel, mdot_ox], P=P)       
+
+
+def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="gri30.xml"): 
+    flameGas = premix(phi_main, P=P, mech=mech, T_fuel=T_fuel, T_ox=T_ox) 
+    # filename = '{0}_{1}-{2}_{3}-{4}_{5}'.format('phi_main', phi_main, 'P', P, )
+    filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main);
+    if os.path.isfile(filename):
+            table = pq.read_table(filename, nthreads=5)
+            mainBurnerDF = table.to_pandas()
+            flameTime = mainBurnerDF.index.values;
+    else:
+        flame, flameTime = runFlame(flameGas)
+        columnNames = ['x', 'u', 'T', 'n', 'MW'] + ["Y_" + sn for sn in flameGas.species_names] + ["X_" + sn for sn in
+                                                                                    flameGas.species_names]
+        flameData = np.concatenate(
+        [np.array([flame.grid]), np.array([flame.u]), np.array([flame.T]), np.array([[0] * len(flame.T)]), np.array([[0] * len(flame.T)]), flame.Y, flame.X], axis=0)
+        mainBurnerDF = pd.DataFrame(data=flameData.transpose(), index=flameTime, columns=columnNames)
+        mainBurnerDF.index.name = 'Time'
+        mainBurnerDF['P'] = flame.P;
+        table = pa.Table.from_pandas(mainBurnerDF);
+        pq.write_table(table, filename);
+        
+    vitiatedProd, flameCutoffIndex, mainBurnerDF = getStateAtTime(mainBurnerDF, flameTime, tau_main)
+    vitReactor = ct.ConstPressureReactor(vitiatedProd)
+    return vitReactor, mainBurnerDF
+
+def solvePhi_airSplit(phiGlobal, phiMain, mdotTotal=1000, airSplit=1):
+    # fs = 
+    fs = 0.058387057492574147;
+    mfm = airSplit*fs*mdotTotal*(1+fs*phiGlobal)**(-1)*phiMain
+    mam = airSplit*mdotTotal*(1+fs*phiGlobal)**(-1)
+    mfs = (-1)*(1+fs*phiGlobal)**(-1)*((-1)*fs*mdotTotal*phiGlobal+airSplit*fs*mdotTotal*phiMain)
+    mas = (-1)*((-1)+airSplit)*mdotTotal*(1+fs*phiGlobal)**(-1)
+    return mfm, mam, mfs, mas
 
 if __name__ == '__main__':
+    # for j in range(1,16):
     timeList = []
-    for i in range(0,10):
+    for i in range(0,2):
         g1 = ct.Solution('gri30.xml');
         g2 = ct.Solution('gri30.xml');
         g1.TPX = 1500, 25*ct.one_atm, g1.X;
@@ -484,13 +534,43 @@ if __name__ == '__main__':
         g2.set_equivalence_ratio(0.8, {'CH4':1.0}, {'N2':0.79, 'O2':0.21})
         p1 = Particle.fromGas(g1);
         p2 = Particle.fromGas(g2);
-
+        particle_list = [Particle.fromGas(g1) for _ in range(0,4)]
         t1 = time.time();
         t = np.arange(0, 10*1e-3, 0.01*1e-3)
-        bp = BatchPaSR([p1, p1, p1, p1, p1, p1, p1, p1], dt=t[1]-t[0]);
+        bp = BatchPaSR(particle_list, dt=t[1]-t[0], N_MAX = 20);
         [bp.react(parallel=True) for _ in t]
         t2 = time.time();
         timeList.append(t2-t1)
         print("Run {0:d}: {1:.2f} seconds".format(i, t2-t1))
         # bp.particle_list[0].get_timeHistory(dataFrame=True).to_clipboard();
-    print("Average time taken to run BatchPaSR of size {0:02d} for {1:04d} timesteps in series: {2:06.3f} seconds".format(bp.N, len(t), np.mean(np.array(timeList))))
+        print("Average time taken to run BatchPaSR of size {0:02d} for {1:04d} timesteps in series: {2:06.3f} seconds".format(bp.N, len(t), np.mean(np.array(timeList))))
+    pdb.set_trace()
+    bp.insert(p2)
+    [bp.react() for _ in t]
+    df = bp.particle_list[0].get_timeHistory(dataFrame=True)
+    df2 = bp.particle_list[1].get_timeHistory(dataFrame=True)
+    df2.to_clipboard()
+    df.append(bp.particle_list[0].get_timeHistory(dataFrame=True))
+
+
+# if __name__ == '__main__':
+    # timeList = []
+    # for i in range(0,10):
+    #     g1 = ct.Solution('gri30.xml');
+    #     g2 = ct.Solution('gri30.xml');
+    #     g1.TPX = 1500, 25*ct.one_atm, g1.X;
+    #     g2.TPX = 1200, 25*ct.one_atm, g2.X;
+    #     g1.set_equivalence_ratio(0.8, {'CH4':1.0}, {'N2':0.79, 'O2':0.21})
+    #     g2.set_equivalence_ratio(0.8, {'CH4':1.0}, {'N2':0.79, 'O2':0.21})
+    #     p1 = Particle.fromGas(g1);
+    #     p2 = Particle.fromGas(g2);
+
+    #     t1 = time.time();
+    #     t = np.arange(0, 10*1e-3, 0.01*1e-3)
+    #     bp = BatchPaSR([p1, p1, p1, p1, p1, p1, p1, p1], dt=t[1]-t[0]);
+    #     [bp.react(parallel=True) for _ in t]
+    #     t2 = time.time();
+    #     timeList.append(t2-t1)
+    #     print("Run {0:d}: {1:.2f} seconds".format(i, t2-t1))
+    #     # bp.particle_list[0].get_timeHistory(dataFrame=True).to_clipboard();
+    # print("Average time taken to run BatchPaSR of size {0:02d} for {1:04d} timesteps in series: {2:06.3f} seconds".format(bp.N, len(t), np.mean(np.array(timeList))))
