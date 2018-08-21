@@ -1,0 +1,8 @@
+﻿  Validating architecture
+  Validating sources
+  Copying sources remotely to 'localhost'
+  Starting remote build
+  Compiling sources:
+  main.cpp
+  Linking objects
+  BatchPaSR_IEM.vcxproj -> C:\Users\edwin\Dropbox (GaTech)\BatchPaSR\IEM\BatchPaSR_IEM\BatchPaSR_IEM\bin\x64\Release\BatchPaSR_IEM.out
