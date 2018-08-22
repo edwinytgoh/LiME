@@ -15,7 +15,7 @@ from CanteraTools import *
 class Particle(object):
     """Class for particle in BatchPaSR.
     """
-    gas_template = None; 
+    gas_template = None
     
     @classmethod
     def fromGas(cls, gas, particle_mass = 1.0):
@@ -59,8 +59,8 @@ class Particle(object):
 
         """
         if Particle.gas_template == None:
-            Particle.gas_template = ct.Solution(gas.name + ".xml")        
-        self.mech = mech;
+            Particle.gas_template = ct.Solution(mech)        
+        self.mech = mech
         self.P = state[1]
         Particle.gas_template.TPX = [state[0], state[1], state[2:]]
         self.column_names = ['age', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
@@ -68,7 +68,7 @@ class Particle(object):
         self.age = 0
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
-        self.timeHistory_array = None; 
+        self.timeHistory_array = None
     
     def __call__(self, comp=None):
         """Return or set composition.
@@ -139,7 +139,7 @@ class Particle(object):
         if isinstance(other, Particle):
             return self.state + other.state
         elif isinstance(other, np.ndarray):
-            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format()            
+            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))            
             return self.state + other
         elif isinstance(other, (int, float)):
             return self.state + other
@@ -250,7 +250,7 @@ class Particle(object):
             h = self.state[0] + other.state[0]
             Y = self.state[1:] + other.state[1:]
         elif isinstance(other, np.ndarray):
-            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format()
+            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))
             h = self.state[0] + other[0]
             Y = self.state[1:] + other[1:]
         elif isinstance(other, (int, float)):
@@ -280,7 +280,7 @@ class Particle(object):
             h = self.state[0] - other.state[0]
             Y = self.state[1:] - other.state[1:]
         elif isinstance(other, np.ndarray):
-            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format()
+            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))
             h = self.state[0] - other[0]
             Y = self.state[1:] - other[1:]
         elif isinstance(other, (int, float)):
@@ -352,7 +352,7 @@ class Particle(object):
         self.timeHistory_array = np.vstack(self.timeHistory_list)
         if dataFrame == True:
             df = pd.DataFrame(columns = self.column_names, data = self.timeHistory_array)
-            df.set_index(['age']); 
+            df.set_index(['age'])
             return df
         
         return self.timeHistory_array
@@ -423,7 +423,7 @@ class PaSBR(object):
         
         
     def insert(self, particle):
-        self.particle_list.append(particle); 
+        self.particle_list.append(particle)
         self.updateState() # Is the cost of assigning N to a new value (in updateState()) higher than doing N += 1?
     
     @classmethod
@@ -448,17 +448,21 @@ class PaSBR(object):
     
 #     def iem(cls, paticle_list)
     def _iem(self, particle_list, k):
-        k_avg = k*self.state;
+        k_avg = k*self.state
         for p in particle_list:
             p.state = p * (k + 1) - k_avg
  
     def mix(self, tau_mix):
         # Constant k:
         k = -self.dt/tau_mix # note: actually, k = -0.5*C_phi*omega*dt, but since C_phi is usually 2, i canceled it out.
-        k_avg = k*self.state;
+        k_avg = k*self.state
         [p(p * (k + 1) - k_avg) for p in self.particle_list]
         self.updateState()
         
+    def entrain(self, inactive_particles, index):
+        # Adds the next inactive particle at defined index
+        self.particle_list.append(inactive_particles[index])
+
     def get_timeHistory(self, dataFrame=True):
         """Obtain particle's history. 
         
@@ -474,7 +478,7 @@ class PaSBR(object):
         self.timeHistory_array = np.vstack(self.timeHistory_list)
         if dataFrame == True:
             df = pd.DataFrame(columns = self.column_names, data = self.timeHistory_array)
-            df.set_index(['age']); 
+            df.set_index(['age'])
             return df
         
         return self.timeHistory_array        
