@@ -18,23 +18,11 @@ secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas)
 bp = PaSBR(particle_list=[secondary_part], dt=0.001*milliseconds, N_MAX=11)
 totalTime = 1*milliseconds
 t = np.arange(0, totalTime, bp.dt)
-# Defining entrainment here
-# Using constant entrainment time step
-# Constant entrainment rate for now (decide on more realistic with reference)
-numParticles = 10
-entrainmentMass = (mfm + mam)/numParticles
-entrainTime = np.arange(0, totalTime, totalTime/numParticles)
-inactiveGas = []
-for i in range(0, numParticles):
-    tempParticle = Particle.fromGas(vit_reactor.thermo, particle_mass = entrainmentMass)
-    tempParticle.react(entrainTime[i])
-    inactiveGas.append(tempParticle)
-entrainInd = 0
 
+# Constant entrainment rate for now (decide on more realistic with reference)
+bp.prepEntrainment(added_gas = vit_reactor.thermo, totalmass = (mam+mfm), tau_ent = totalTime, numParticles=10, method='constant')
 for i in range(0,t.size):
-    if entrainInd < numParticles and t[i] >= entrainTime[entrainInd]:
-        bp.entrain(inactiveGas, entrainInd)
-        entrainInd += 1
+    bp.entrain(t[i])
     bp.react()
     bp.mix(tau_mix=0.1*milliseconds)
 

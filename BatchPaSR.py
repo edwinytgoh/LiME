@@ -398,6 +398,9 @@ class PaSBR(object):
         self.updateState()
         self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
         self.massList = [self.mass]
+        self.inactive_particles = []
+        self.entrain_timer = None
+        self.entrainInd = 0
 
     def __call__(self):
         self.mean_gas()
@@ -458,10 +461,26 @@ class PaSBR(object):
         k_avg = k*self.state
         [p(p * (k + 1) - k_avg) for p in self.particle_list]
         self.updateState()
+    
+    def prepEntrainment(self, added_gas, totalmass, tau_ent, numParticles=10, method='constant'):
+        # Todo: add multiple entrainment menthods here (defaulting to constant for now)
+        entrainmentMass = totalmass/numParticles
+        self.entrain_timer = np.arange(0, tau_ent, tau_ent/numParticles)
+        self.inactive_particles = []    # Reset for sanity
+        for i in range(0, numParticles):
+            tempParticle = Particle.fromGas(added_gas, particle_mass = entrainmentMass)
+            tempParticle.react(self.entrain_timer[i])  # Continue reacting until entrainment
+            self.inactive_particles.append(tempParticle)
+
+    def entrain(self, currenttime):
+        # Adds the next inactive particle if the time is correct
+        if self.entrainInd < len(self.inactive_particles) and currenttime >= self.entrain_timer[self.entrainInd]:
+            # Note: The code right now will wait until the time is at or past the defined checkpoints
+            # It will not entrail exactly at the defined time if the time steps do not synchronize
+            # However, this should be less of an issue if more particles and smaller time steps are used
+            self.particle_list.append(self.inactive_particles[self.entrainInd])
+            self.entrainInd += 1
         
-    def entrain(self, inactive_particles, index):
-        # Adds the next inactive particle at defined index
-        self.particle_list.append(inactive_particles[index])
 
     def get_timeHistory(self, dataFrame=True):
         """Obtain particle's history. 
