@@ -20,7 +20,7 @@ totalTime = 1*milliseconds
 t = np.arange(0, totalTime, bp.dt)
 
 # Constant entrainment rate for now (decide on more realistic with reference)
-bp.prepEntrainment(added_gas = vit_reactor.thermo, totalmass = (mam+mfm), tau_ent = totalTime, numParticles=10, method='constant')
+bp.prepEntrainment(added_gas = vit_reactor.thermo, total_mass_added = (mam+mfm), tau_ent = totalTime, numParticles=10, method='constant')
 for i in range(0,t.size):
     bp.entrain(t[i])
     bp.react()

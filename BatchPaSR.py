@@ -462,23 +462,49 @@ class PaSBR(object):
         [p(p * (k + 1) - k_avg) for p in self.particle_list]
         self.updateState()
     
-    def prepEntrainment(self, added_gas, totalmass, tau_ent, numParticles=10, method='constant'):
+    def prepEntrainment(self, added_gas, total_mass_added, tau_ent, numParticles=10, method='constant'):
+        """Initialize particles to be entrained
+        
+        Parameters
+        ----------
+        added_gas : `cantera.Solution`
+            Thermochemical state of gas to be entrained
+        
+        total_mass_added : `float`
+            Total mass to be entrained 
+            (Edwin note: could this be a list of masses which some up to some total mass instead?)
+        
+        tau_ent : `float`
+            Total time for which entrainment occurs (in seconds)
+        
+        numParticles : `int`
+            Number of particles to be entrained 
+        
+        Returns
+        -------
+        None 
+        
+        """ 
+                
         # Todo: add multiple entrainment menthods here (defaulting to constant for now)
-        entrainmentMass = totalmass/numParticles
+        entrainmentMass = total_mass_added/numParticles
         self.entrain_timer = np.arange(0, tau_ent, tau_ent/numParticles)
         self.inactive_particles = []    # Reset for sanity
+
+        # Initialize particles
         for i in range(0, numParticles):
             tempParticle = Particle.fromGas(added_gas, particle_mass = entrainmentMass)
-            tempParticle.react(self.entrain_timer[i])  # Continue reacting until entrainment
             self.inactive_particles.append(tempParticle)
 
-    def entrain(self, currenttime):
+    def entrain(self, current_time):
         # Adds the next inactive particle if the time is correct
-        if self.entrainInd < len(self.inactive_particles) and currenttime >= self.entrain_timer[self.entrainInd]:
+        current_particle = self.inactive_particles[self.entrainInd]
+        if current_time >= self.entrain_timer[self.entrainInd] and self.entrainInd < len(self.inactive_particles):
             # Note: The code right now will wait until the time is at or past the defined checkpoints
-            # It will not entrail exactly at the defined time if the time steps do not synchronize
+            # It will not entrain exactly at the defined time if the time steps do not synchronize
             # However, this should be less of an issue if more particles and smaller time steps are used
-            self.particle_list.append(self.inactive_particles[self.entrainInd])
+            current_particle.react(current_time)  # Continue reacting until entrainment. Note: assumes current_time starts from 0            
+            self.particle_list.append(current_particle)
             self.entrainInd += 1
         
 
