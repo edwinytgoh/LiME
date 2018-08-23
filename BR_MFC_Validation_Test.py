@@ -20,28 +20,33 @@ mfc = ct.MassFlowController(vit_reactor, sec_reactor, mdot = (mfm+mam)/totalTime
 
 reactorNet = ct.ReactorNet([vit_reactor, sec_reactor])
 states = ct.SolutionArray(secondary_gas, extra=['t'])
+enthalpy = []
 
 tnow = 0
 dt = totalTime/100
 for i in range(100):
     reactorNet.advance(tnow)
     states.append(sec_reactor.thermo.state, t=tnow)
+    enthalpy.append(sec_reactor.thermo.enthalpy_mass)
     tnow += dt
 
 fig1, ax1 = plt.subplots()
-fig1.suptitle('Particle Temperature over Time in Second Stage')
-fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1)
-ax2.set_title('NO Concentration over time (15% O2 corr ppm)')
-ax3.set_title('CO Concentration over time (15% O2 corr ppm)')
+fig1.suptitle('Total Enthalpy of Reactor over Time')
+# fig1.suptitle('Particle Temperature over Time in Second Stage')
+# fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1)
+# ax2.set_title('NO Concentration over time (15% O2 corr ppm)')
+# ax3.set_title('CO Concentration over time (15% O2 corr ppm)')
 
-NO_corr = correctNOx(states('NO').X, states('H2O').X, states('O2').X)
-CO_corr = correctNOx(states('CO').X, states('H2O').X, states('O2').X)
-ax1.plot(states.t, states.T)
-ax2.plot(states.t, NO_corr)
-ax3.plot(states.t, CO_corr)
+# NO_corr = correctNOx(states('NO').X, states('H2O').X, states('O2').X)
+# CO_corr = correctNOx(states('CO').X, states('H2O').X, states('O2').X)
+# ax1.plot(states.t, states.T)
+# ax2.plot(states.t, NO_corr)
+# ax3.plot(states.t, CO_corr)
+ax1.plot(states.t, enthalpy)
 
-for ax in [ax1, ax2, ax3]:
-    ax.grid(True)
-    ax.label_outer()
-fig1.savefig('BR_MFC_Temperature_Plot.png')
-fig2.savefig('BR_MFC_NO_CO_Concentrations_Plot.png')
+#for ax in [ax1, ax2, ax3]:
+ax1.grid(True)
+ax1.label_outer()
+#fig1.savefig('BR_MFC_Temperature_Plot.png')
+#fig2.savefig('BR_MFC_NO_CO_Concentrations_Plot.png')
+plt.show()

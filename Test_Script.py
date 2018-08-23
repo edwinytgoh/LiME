@@ -31,6 +31,8 @@ fig1.suptitle('Particle Temperature over Time in Second Stage')
 fig2, (ax2, ax3) = plt.subplots(nrows=2, ncols=1)
 ax2.set_title('NO Concentration over time (15% O2 corr ppm)')
 ax3.set_title('CO Concentration over time (15% O2 corr ppm)')
+fig3, ax4 = plt.subplots()
+fig3.suptitle('Enthalpy of Secondary Particle over Time')
 
 for i in range(1):
     df = bp.particle_list[i].get_timeHistory(dataFrame=True)
@@ -40,10 +42,12 @@ for i in range(1):
     ax1.plot(df['age'], df['T'], label=labelstr)
     ax2.plot(df['age'], NO_corr, label=labelstr)
     ax3.plot(df['age'], CO_corr, label=labelstr)
+    ax4.plot(df['age'], df['h'], label=labelstr)
 
-for ax in [ax1, ax2, ax3]:
+for ax in [ax1, ax2, ax3, ax4]:
     ax.grid(True)
     ax.label_outer()
     ax.legend()
 fig1.savefig('Entrained_Temperature_Plot.png')
 fig2.savefig('Entrained_NO_CO_Concentrations_Plot.png')
+# plt.show()
