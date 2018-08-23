@@ -498,11 +498,11 @@ class PaSBR(object):
 
     def entrain(self, current_time):
         # Adds the next inactive particle if the time is correct
-        current_particle = self.inactive_particles[self.entrainInd]
-        if current_time >= self.entrain_timer[self.entrainInd] and self.entrainInd < len(self.inactive_particles):
+        if self.entrainInd < len(self.inactive_particles) and current_time >= self.entrain_timer[self.entrainInd]:
             # Note: The code right now will wait until the time is at or past the defined checkpoints
             # It will not entrain exactly at the defined time if the time steps do not synchronize
             # However, this should be less of an issue if more particles and smaller time steps are used
+            current_particle = self.inactive_particles[self.entrainInd]
             current_particle.react(current_time)  # Continue reacting until entrainment. Note: assumes current_time starts from 0            
             self.particle_list.append(current_particle)
             self.entrainInd += 1
