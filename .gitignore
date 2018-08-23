@@ -1,0 +1,6 @@
+## Setting up an ignore file so we don't have to push and pull extra python and VS creaded outputs
+# Python files/folders
+__pycache__/
+.ipynb_checkpoints/
+# VS Code folder
+.vscode/
