@@ -23,7 +23,7 @@ times = np.arange(0, totalTime, bp.dt)
 customInterval = np.array([0., 1., 1., 1., 2., 2., 2., 3., 3., 4.])
 customInterval *= 0.95*totalTime/np.sum(customInterval) # 0.95 so that last particle enters before end
 customInterval = customInterval.cumsum()
-bp.prepEntrainment(added_gas = vit_reactor.thermo, total_mass_added = (mam+mfm), tau_ent = totalTime, numParticles=10, method='constant', time_interval = customInterval)
+bp.prepEntrainment(added_gas = vit_reactor.thermo, total_mass_added = (mam+mfm), tau_ent = totalTime, numParticles=10, method='constant')   #, time_interval = customInterval)
 
 states = ct.SolutionArray(bp.mean_gas, extra=['t'])
 enthalpy = []
@@ -35,6 +35,37 @@ for ti in times:
     bp.react()
 #    bp.mix(tau_mix=0.1*milliseconds)
 
+
+# Separate BR + MFC run to plot on top of each other
+
+[vit_reactor2, main_burner_DF] = runMainBurner(0.4, 19*milliseconds)
+
+# vit_particle = Particle.fromGas(vit_reactor.thermo, particle_mass = entrainmentMass)
+# g1 = ct.Solution('gri30.xml')
+
+secondary_gas2 = ct.Solution('gri30.xml')
+secondary_gas2.TPX = 300, 25*ct.one_atm, {'CH4':1}
+sec_reactor = ct.ConstPressureReactor(secondary_gas2, volume = (mfs+mas)/secondary_gas2.density_mass)
+sec_reactor.chemistry_enabled = False
+# secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas)
+
+totalTime = 1*milliseconds
+mfc = ct.MassFlowController(vit_reactor, sec_reactor, mdot = (mfm+mam)/totalTime)
+
+reactorNet = ct.ReactorNet([vit_reactor, sec_reactor])
+states2 = ct.SolutionArray(secondary_gas2, extra=['t'])
+enthalpy2 = []
+mass = []
+
+tnow = 0
+dt = totalTime/100
+for i in range(100):
+    reactorNet.advance(tnow)
+    states2.append(sec_reactor.thermo.state, t=tnow)
+    enthalpy2.append(sec_reactor.thermo.enthalpy_mass)
+    mass.append(sec_reactor.mass)
+    tnow += dt
+
 fig1, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
 ax1.set_title('Temperature over Time in Second Stage')
 ax2.set_title('Enthalpy of Second Stage over Time')
@@ -44,22 +75,27 @@ ax4.set_title('CO Concentration over time (15% O2 corr ppm)')
 fig3, ax5 = plt.subplots()
 fig3.suptitle('Mass of System')
 
-for i in range(1):
-    # df = bp.particle_list[i].get_timeHistory(dataFrame=True)
-    # labelstr = 'Secondary Stream Particle' if i == 0 else 'Entrained Particle ' + str(i)
-    NO_corr = correctNOx(states('NO').X, states('H2O').X, states('O2').X)
-    CO_corr = correctNOx(states('CO').X, states('H2O').X, states('O2').X)
-    ax1.plot(states.t, states.T)
-    ax2.plot(states.t, enthalpy)
-    ax3.plot(states.t, NO_corr)
-    ax4.plot(states.t, CO_corr)
-    df = bp.get_timeHistory()
-    ax5.plot(df['age'], df['mass'])
+NO_corr = correctNOx(states('NO').X, states('H2O').X, states('O2').X)
+CO_corr = correctNOx(states('CO').X, states('H2O').X, states('O2').X)
+ax1.plot(states.t, states.T, label = 'Entrained Case')
+ax2.plot(states.t, enthalpy, label = 'Entrained Case')
+ax3.plot(states.t, NO_corr, label = 'Entrained Case')
+ax4.plot(states.t, CO_corr, label = 'Entrained Case')
+df = bp.get_timeHistory()
+ax5.plot(df['age'], df['mass'], label = 'Entrained Case')
+
+NO_corr2 = correctNOx(states2('NO').X, states2('H2O').X, states2('O2').X)
+CO_corr2 = correctNOx(states2('CO').X, states2('H2O').X, states2('O2').X)
+ax1.plot(states2.t, states2.T, label = 'BR + MFC')
+ax2.plot(states2.t, enthalpy2, label = 'BR + MFC')
+ax3.plot(states2.t, NO_corr2, label = 'BR + MFC')
+ax4.plot(states2.t, CO_corr2, label = 'BR + MFC')
+ax5.plot(states2.t, mass, label = 'BR + MFC')
 
 for ax in [ax1, ax2, ax3, ax4, ax5]:
     ax.grid(True)
     ax.label_outer()
-#    ax.legend()
-# fig1.savefig('Entrained_Temperature_Plot.png')
-# fig2.savefig('Entrained_NO_CO_Concentrations_Plot.png')
+    ax.legend()
+#fig1.savefig('BR_MFC_Temperature_Plot.png')
+#fig2.savefig('BR_MFC_NO_CO_Concentrations_Plot.png')
 plt.show()
