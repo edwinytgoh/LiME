@@ -18,7 +18,7 @@ class Particle(object):
     gas_template = None
     
     @classmethod
-    def fromGas(cls, gas, particle_mass = 1.0):
+    def fromGas(cls, gas, particle_mass = 1.0, chemistry = True):
         """Initialize particle object with thermochemical state.
         
         Parameters
@@ -36,9 +36,9 @@ class Particle(object):
         """ 
         if Particle.gas_template == None:
             Particle.gas_template = ct.Solution(gas.name + ".xml")
-        return cls(np.hstack([gas.T, gas.P, gas.X]), particle_mass, gas.name + ".xml")
+        return cls(np.hstack([gas.T, gas.P, gas.X]), particle_mass, gas.name + ".xml", chemistry)
     
-    def __init__(self, state, particle_mass = 1.0, mech='gri30.xml'):
+    def __init__(self, state, particle_mass = 1.0, mech='gri30.xml', chemistry = True):
         """Initialize particle object with thermochemical state.
 
         Parameters
@@ -69,6 +69,7 @@ class Particle(object):
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
         self.timeHistory_array = None
+        self.chemistry_enabled = chemistry
     
     def __call__(self, comp=None):
         """Return or set composition.
@@ -330,6 +331,7 @@ class Particle(object):
         self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
         reac = ct.ConstPressureReactor(Particle.gas_template,
             volume= self.mass/Particle.gas_template.density)
+        reac.chemistry_enabled = self.chemistry_enabled
         netw = ct.ReactorNet([reac])
         netw.advance(dt)
         self.age += dt
@@ -368,7 +370,7 @@ class Particle(object):
 
 
 class PaSBR(object):
-    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3):
+    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, chemistry = True):
         """Initialize BatchPaSR from a list of Particles
         
         Parameters
@@ -401,6 +403,7 @@ class PaSBR(object):
         self.inactive_particles = []
         self.entrain_timer = None
         self.entrainInd = 0
+        self.chemistry_enabled = chemistry
 
     def __call__(self):
         self.mean_gas()
@@ -462,7 +465,7 @@ class PaSBR(object):
         [p(p * (k + 1) - k_avg) for p in self.particle_list]
         self.updateState()
     
-    def prepEntrainment(self, added_gas, total_mass_added, tau_ent, numParticles=10, method='constant'):
+    def prepEntrainment(self, added_gas, total_mass_added, tau_ent, numParticles=10, method='constant', time_interval = None):
         """Initialize particles to be entrained
         
         Parameters
@@ -479,6 +482,10 @@ class PaSBR(object):
         
         numParticles : `int`
             Number of particles to be entrained 
+
+        time_interval : `numpy.array`
+            Custom defined points in time to be used in entrainment as opposed to constant time steps
+            Note: Entrainment mass is determined
         
         Returns
         -------
@@ -487,13 +494,25 @@ class PaSBR(object):
         """ 
                 
         # Todo: add multiple entrainment menthods here (defaulting to constant for now)
-        entrainmentMass = total_mass_added/numParticles
-        self.entrain_timer = np.arange(0, tau_ent, tau_ent/numParticles)
+        if time_interval is None:
+            self.entrain_timer = np.arange(0, tau_ent, tau_ent/numParticles)
+        else:
+            self.entrain_timer = time_interval
+        entrainmentMass = []
+        for i in range(len(self.entrain_timer)):
+            prev = self.entrain_timer[i]
+            next = tau_ent
+            if i < len(self.entrain_timer)-1:
+                next = self.entrain_timer[i+1]
+            # Compare difference in time to last 
+            mass = total_mass_added*(next-prev)/tau_ent
+            entrainmentMass.append(mass)
+
         self.inactive_particles = []    # Reset for sanity
 
         # Initialize particles
         for i in range(0, numParticles):
-            tempParticle = Particle.fromGas(added_gas, particle_mass = entrainmentMass)
+            tempParticle = Particle.fromGas(added_gas, particle_mass = entrainmentMass[i], chemistry = self.chemistry_enabled)
             self.inactive_particles.append(tempParticle)
 
     def entrain(self, current_time):
