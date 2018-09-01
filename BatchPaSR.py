@@ -546,3 +546,55 @@ class PaSBR(object):
             return df
         
         return self.timeHistory_array        
+
+class ParticleFlowController(object):
+    def __init__(self, reactor, gas, totalmass, timestep, method):
+        """
+        Parameters
+        ----------
+        reactor : `BatchPaSR`
+            The reactor that this PFC acts as an inlet for
+        
+        gas : `cantera.Solution`
+            Thermochemical state of gas to be entrained
+
+        totalmass : `float`
+            Total amount of mass that can be entrained in
+
+        timestep : `float`
+            Time between entrainment steps (continue to add particles if there's still mass left)
+
+        method : `string`
+            Function of time that describes entrainment rate (i.e. '0.5' or '0.12*t**2-0.6*t')
+            The expression must be in terms of 't' in seconds and in Python syntax
+        
+        Returns
+        -------
+        None
+        """
+        self.bp = reactor
+        self.gas = gas
+        self.rn = ct.ReactorNet([ct.ConstPressureReactor(self.gas)])
+        self.mass = totalmass
+        self.dt = timestep
+        self.mdotexp = method
+        self.nextstep = timestep/2   # Which time to add the next particle (using trapezoidal sum)
+
+    def canEntrain(self, t):
+        # Check if we can even entrain at this time
+        return (self.mass > 0) and (self.nextstep <= t)
+        
+    def entrain(self, t):
+        # Will add a particle to the reactor if entrainment is possible
+        if self.canEntrain(t):
+            # Calculate the mass of added particle
+            mdot1 = eval(self.mdotexp.replace('t', str(self.nextstep - self.dt/2)))
+            mdot2 = eval(self.mdotexp.replace('t', str(self.nextstep + self.dt/2)))
+            self.nextstep += self.dt
+            mass = min(self.mass, (mdot1 + mdot2)/2 * self.dt)
+            # Keep track of remaining mass
+            self.mass -= mass
+            self.rn.advance(t)
+            particle = Particle.fromGas(self.gas, particle_mass=mass)
+            # Add it into the reactor
+            self.bp.insert(particle)
