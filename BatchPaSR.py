@@ -564,9 +564,10 @@ class ParticleFlowController(object):
         timestep : `float`
             Time between entrainment steps (continue to add particles if there's still mass left)
 
-        method : `string`
+        method : `string` or `function`
             Function of time that describes entrainment rate (i.e. '0.5' or '0.12*t**2-0.6*t')
             The expression must be in terms of 't' in seconds and in Python syntax
+            Alternatively, pass in a function to be called that only takes in a time and returns a mass flow rate
         
         Returns
         -------
@@ -588,8 +589,12 @@ class ParticleFlowController(object):
         # Will add a particle to the reactor if entrainment is possible
         if self.canEntrain(t):
             # Calculate the mass of added particle
-            mdot1 = eval(self.mdotexp.replace('t', str(self.nextstep - self.dt/2)))
-            mdot2 = eval(self.mdotexp.replace('t', str(self.nextstep + self.dt/2)))
+            if callable(self.mdotexp):
+                mdot1 = self.mdotexp(self.nextstep - self.dt/2)
+                mdot2 = self.mdotexp(self.nextstep + self.dt/2)
+            else:
+                mdot1 = eval(self.mdotexp.replace('t', str(self.nextstep - self.dt/2)))
+                mdot2 = eval(self.mdotexp.replace('t', str(self.nextstep + self.dt/2)))
             self.nextstep += self.dt
             mass = min(self.mass, (mdot1 + mdot2)/2 * self.dt)
             # Keep track of remaining mass
