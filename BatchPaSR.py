@@ -443,7 +443,7 @@ class PaSBR(object):
             pool = multiprocessing.Pool(processes=4)
             jobList = [(p, self.dt) for p in self.particle_list]
 #             states = ProcessingPool().map(BatchPaSR.reactHelper, jobList)
-            states = pool.map(BatchPaSR.reactHelper, jobList)
+            states = pool.map(PaSBR.reactHelper, jobList)
             pool.close()
             [self.particle_list[i].__setstate__(states[i]) for i in range(0, len(self.particle_list))]
         else:

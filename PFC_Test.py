@@ -42,8 +42,8 @@ def main():
     for i in range(0,t.size):
         pfc_vit.entrain(t[i])
         pfc_sec.entrain(t[i])
-        bp.react()
-        bp.mix(tau_mix=0.01*milliseconds)
+        bp.react(parallel = True)
+        bp.mix(tau_mix=0.001*milliseconds)
         states.append(bp.mean_gas.state, t=t[i])
         enthalpy.append(bp.mean_gas.enthalpy_mass)
 
