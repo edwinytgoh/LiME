@@ -5,8 +5,8 @@ import time
 import pdb 
 from argparse import ArgumentParser
 import os.path
-import pyarrow.parquet as pq 
-import pyarrow as pa
+    import pyarrow.parquet as pq 
+    import pyarrow as pa
 import multiprocessing
 
 milliseconds = 0.001 # seconds 
@@ -26,7 +26,7 @@ def runFlame(gas):
     X_CH2O = f.X[CH2O]
     maxIndex = np.arange(0, len(X_CH2O))[X_CH2O == max(X_CH2O)][0];
 #     startingIndex = np.arange(0, len(X_CH2O))[X_CH2O >= X_CH2O[0] + 5][0]
-    startingIndex = maxIndex;
+    startingIndex = maxIndex; 
     #     startingIndex = np.arange(0, len(f.heat_release_rate))[f.heat_release_rate == max(f.heat_release_rate)][0]
     u_avg = np.array(f.u[startingIndex:] + f.u[startingIndex - 1:-1]) * 0.5
     dx = np.array(f.grid[startingIndex:] - f.grid[startingIndex - 1:-1])
@@ -209,6 +209,14 @@ def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="g
     vitiatedProd, flameCutoffIndex, mainBurnerDF = getStateAtTime(mainBurnerDF, flameTime, tau_main)
     vitReactor = ct.ConstPressureReactor(vitiatedProd)
     return vitReactor, mainBurnerDF
+
+def dataFrame_to_pyarrow(df, filename):
+    pq.write_table(pa.Table.from_pandas(df), filename)
+
+def pyarrow_to_dataFrame(filename):
+    table = pq.read_table(filename, nthreads=4)
+    df = table.to_pandas()
+    return df
 
 def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None,T_fuel=300,T_ox=650,P=25, mech="gri30.xml",trace=False):
     P *= ct.one_atm

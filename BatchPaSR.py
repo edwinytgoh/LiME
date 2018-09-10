@@ -52,6 +52,8 @@ class Particle(object):
         
         particle_mass : `float`
             Particle mass
+
+            
         
         Returns
         -------
@@ -385,7 +387,6 @@ class PaSBR(object):
         """ 
         
         self.column_names = ['age', 'mass', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
-        self.P = particle_list[0].P # NOTE: Assume all particles have same temp
         self.particle_list = particle_list
         self.N_MAX = N_MAX
         self.dt = dt
@@ -396,14 +397,19 @@ class PaSBR(object):
         self.N = len(self.particle_list)
         self.mean_gas = ct.Solution(Particle.gas_template.name + ".xml")
         self.mean_gas.name = "BatchPaSR Mean Gas"
-        self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
-        self.updateState()
-        self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
+        if len(particle_list) > 0:
+            self.P = particle_list[0].P # NOTE: Assume all particles have same temp
+            self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
+            self.updateState()
+            self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
+        else:
+            self.P = 0
+            self.timeHistory_list = [];            
         self.massList = [self.mass]
         self.inactive_particles = []
         self.entrain_timer = None
         self.entrainInd = 0
-        self.chemistry_enabled = chemistry
+        # self.chemistry_enabled = chemistry
 
     def __call__(self):
         self.mean_gas()
@@ -420,12 +426,16 @@ class PaSBR(object):
         -------
         None
         """
+        if self.P == 0:
+            self.P = self.particle_list[0].P
+            self.mean_gas.TPX = self.mean_gas.T, self.P, self.mean_gas.X
         self.mass = sum([p.mass for p in self.particle_list]) # Note: can remove this if we're not updating particle_list if we don't usually update particle_list before we call this method
         self.N = len(self.particle_list)  
         self.state = sum([p.mass * p.state for p in self.particle_list])/self.mass # use p() or p.state?
         self.mean_gas.HPY = self.state[0], self.mean_gas.P, self.state[1:]
         assert all([round(particle.P) == round(self.P) for particle in self.particle_list]), "BatchPaSR does not support particles with different pressures (yet)"
-        assert self.N <= self.N_MAX , "N > N_MAX; too many particles"
+        assert self.N <= self.N_MAX , f"N ({self.N}) > N_MAX ({self.N_MAX}); too many particles"
+        self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
         
         
     def insert(self, particle):
@@ -448,9 +458,8 @@ class PaSBR(object):
             [self.particle_list[i].__setstate__(states[i]) for i in range(0, len(self.particle_list))]
         else:
             [p.react(self.dt) for p in self.particle_list]
-        self.updateState()
         self.time += self.dt        
-        self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
+        self.updateState()
     
 #     def iem(cls, paticle_list)
     def _iem(self, particle_list, k):
@@ -579,7 +588,8 @@ class ParticleFlowController(object):
         self.mass = totalmass
         self.dt = timestep
         self.mdotexp = method
-        self.nextstep = timestep/2   # Which time to add the next particle (using trapezoidal sum)
+        # self.nextstep = timestep/2   # Which time to add the next particle (using trapezoidal sum)
+        self.nextstep = 0
 
     def canEntrain(self, t):
         # Check if we can even entrain at this time
@@ -596,10 +606,12 @@ class ParticleFlowController(object):
                 mdot1 = eval(self.mdotexp.replace('t', str(self.nextstep - self.dt/2)))
                 mdot2 = eval(self.mdotexp.replace('t', str(self.nextstep + self.dt/2)))
             self.nextstep += self.dt
-            mass = min(self.mass, (mdot1 + mdot2)/2 * self.dt)
+            entrained_mass =  min(self.mass, (mdot1 + mdot2)/2 * self.dt) # trapezoidal rule; if remaining self.mass < mass to be entrained then entrain self.mass
             # Keep track of remaining mass
-            self.mass -= mass
+            self.mass -= entrained_mass
             self.rn.advance(t)
-            particle = Particle.fromGas(self.gas, particle_mass=mass)
+            particle = Particle.fromGas(self.gas, particle_mass=entrained_mass)
+            print(f"Entraining particle of mass {entrained_mass:.2f} kg into PaSBR");
+            # pdb.set_trace()
             # Add it into the reactor
             self.bp.insert(particle)
