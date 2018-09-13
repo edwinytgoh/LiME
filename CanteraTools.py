@@ -5,8 +5,8 @@ import time
 import pdb 
 from argparse import ArgumentParser
 import os.path
-    import pyarrow.parquet as pq 
-    import pyarrow as pa
+import pyarrow.parquet as pq 
+import pyarrow as pa
 import multiprocessing
 
 milliseconds = 0.001 # seconds 
