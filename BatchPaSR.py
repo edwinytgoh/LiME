@@ -250,8 +250,9 @@ class Particle(object):
 
         """
         if isinstance(other, Particle):
-            h = self.state[0] + other.state[0]
-            Y = self.state[1:] + other.state[1:]
+            h = (self.mass*self.state[0] + other.mass*other.state[0])/(self.mass + other.mass)
+            Y = (self.mass*self.state[1:] + other.mass*other.state[1:])/(self.mass + other.mass)
+            self.mass += other.mass
         elif isinstance(other, np.ndarray):
             assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))
             h = self.state[0] + other[0]
@@ -315,24 +316,6 @@ class Particle(object):
         else:
             return NotImplemented
         
-    def combine(self, other):
-        """Combine two particles, updating the former
-        
-        Parameters
-        ----------
-        other : `Partcle`
-            Particle to combine with current
-
-        Returns
-        -------
-        None (Updates particle in place)
-
-        """
-        self.state = (self.state*self.mass + other.state*other.mass)/(self.mass+other.mass)
-        self.mass += other.mass
-        Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]      
-        # self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
-
     def react(self, dt):
         """Perform reaction timestep by advancing network.
 
@@ -406,7 +389,7 @@ class PaSBR(object):
         self.column_names = ['age', 'mass', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.particle_list = particle_list
         self.N_MAX = N_MAX
-        self.dt = dt
+        self.dt = dt # note: make sure dt is smaller than tau_mix!!! 
         self.ParticleFlowController = None
         self.time = 0
         self.timenext = 10*dt   # Next point in time to try and coalesce particles
@@ -474,31 +457,46 @@ class PaSBR(object):
 
         # Optional coalescing of particles for performance
         if coalesce and self.time >= self.timenext:
-            self.timenext += 50*self.dt
-            tol = 1e-12
-            ind = 1
-            while ind < len(self.particle_list):
-                p0 = self.particle_list[0]
-                p = self.particle_list[ind]
-                diffH = p.state[0] - p0.state[0]
-                diffY = p.state[1:] - p0.state[1:]
-                if ((diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol and
-                    np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol):
-                    p0.combine(p)
-                    del self.particle_list[ind]
-                else:
-                    ind += 1
+            self.gobble()
 
         self.time += self.dt        
         self.updateState()
     
+    def gobble(self):
+        self.timenext += 50*self.dt
+        tol = 1e-12
+        ind = 1
+        for p1 in self.particle_list:
+            for i in range(1, len(self.particle_list)):
+                p2 = self.particle_list[i]
+                if _canCombine(p1,p2):
+                    p1 += p2
+                    del self.particle_list[i]
+        
+        while ind < len(self.particle_list):
+            p0 = self.particle_list[0]
+            p = self.particle_list[ind]
+            diffH = p.state[0] - p0.state[0]
+            diffY = p.state[1:] - p0.state[1:]
+            if ((diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol and
+                np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol):
+                p0 += p # combine particles and update p0
+                del self.particle_list[ind]
+            else:
+                ind += 1        
+    
+    def _canCombine(p1, p2, tol=1e-12):
+        diffH = p.state[0] - p0.state[0]
+        diffY = p.state[1:] - p0.state[1:]        
+        return diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol
+
 #     def iem(cls, paticle_list)
     def _iem(self, particle_list, k):
         k_avg = k*self.state
         for p in particle_list:
             p.state = p * (k + 1) - k_avg
  
-    def mix(self, tau_mix):
+    def mix(self, tau_mix): # note: make sure dt < tau_mix!
         # Constant k:
         k = -self.dt/tau_mix # note: actually, k = -0.5*C_phi*omega*dt, but since C_phi is usually 2, i canceled it out.
         k_avg = k*self.state
@@ -639,6 +637,7 @@ class ParticleFlowController(object):
             self.nextstep += self.dt
             entrained_mass =  min(self.mass, (mdot1 + mdot2)/2 * self.dt) # trapezoidal rule; if remaining self.mass < mass to be entrained then entrain self.mass
             # Keep track of remaining mass
+            
             self.mass -= entrained_mass
             self.rn.advance(t)
             particle = Particle.fromGas(self.gas, particle_mass=entrained_mass)
