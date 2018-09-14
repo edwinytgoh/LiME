@@ -473,17 +473,17 @@ class PaSBR(object):
                     p1 += p2
                     del self.particle_list[i]
         
-        while ind < len(self.particle_list):
-            p0 = self.particle_list[0]
-            p = self.particle_list[ind]
-            diffH = p.state[0] - p0.state[0]
-            diffY = p.state[1:] - p0.state[1:]
-            if ((diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol and
-                np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol):
-                p0 += p # combine particles and update p0
-                del self.particle_list[ind]
-            else:
-                ind += 1        
+        # while ind < len(self.particle_list):
+        #     p0 = self.particle_list[0]
+        #     p = self.particle_list[ind]
+        #     diffH = p.state[0] - p0.state[0]
+        #     diffY = p.state[1:] - p0.state[1:]
+        #     if ((diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol and
+        #         np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol):
+        #         p0 += p # combine particles and update p0
+        #         del self.particle_list[ind]
+        #     else:
+        #         ind += 1        
     
     def _canCombine(p1, p2, tol=1e-12):
         diffH = p.state[0] - p0.state[0]
