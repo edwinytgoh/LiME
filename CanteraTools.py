@@ -5,8 +5,8 @@ import time
 import pdb 
 from argparse import ArgumentParser
 import os.path
-    import pyarrow.parquet as pq 
-    import pyarrow as pa
+import pyarrow.parquet as pq 
+import pyarrow as pa
 import multiprocessing
 
 milliseconds = 0.001 # seconds 
@@ -135,7 +135,7 @@ def mix(streams, mdots, mech="gri30.xml", P=25*101325):
     
     # Create reactor with CHEMISTRY DISABLED: 
     mixer = ct.ConstPressureReactor(mixerGas) 
-    mixer.chemistry_enabled = False # distable chemistry 
+    mixer.chemistry_enabled = False # disable chemistry 
     
     # For each stream (and given mass flow rate), connect mass flow controller to mixer: 
     mfcs = [ct.MassFlowController(ct.Reservoir(streams[i]), mixer, mdot=mdots[i]) for i in range(0,len(streams))]

@@ -611,7 +611,7 @@ class ParticleFlowController(object):
             self.mass -= entrained_mass
             self.rn.advance(t)
             particle = Particle.fromGas(self.gas, particle_mass=entrained_mass)
-            print(f"Entraining particle of mass {entrained_mass:.2f} kg into PaSBR");
+            # print(f"Entraining particle of mass {entrained_mass:.2f} kg into PaSBR");
             # pdb.set_trace()
             # Add it into the reactor
             self.bp.insert(particle)
