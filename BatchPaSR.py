@@ -101,7 +101,7 @@ class Particle(object):
             self.state[1:] = Y
         else:
             return self.state
-
+   
     def __add__(self, other):
         """Add values to state of particle without changing the state of either particle.
 
@@ -315,6 +315,23 @@ class Particle(object):
         else:
             return NotImplemented
         
+    def combine(self, other):
+        """Combine two particles, updating the former
+        
+        Parameters
+        ----------
+        other : `Partcle`
+            Particle to combine with current
+
+        Returns
+        -------
+        None (Updates particle in place)
+
+        """
+        self.state = (self.state*self.mass + other.state*other.mass)/(self.mass+other.mass)
+        self.mass += other.mass
+        Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]      
+        # self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
 
     def react(self, dt):
         """Perform reaction timestep by advancing network.
@@ -372,7 +389,7 @@ class Particle(object):
 
 
 class PaSBR(object):
-    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, chemistry = True):
+    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, coalesce = True):
         """Initialize BatchPaSR from a list of Particles
         
         Parameters
@@ -392,23 +409,19 @@ class PaSBR(object):
         self.dt = dt
         self.ParticleFlowController = None
         self.time = 0
+        self.timenext = 10*dt   # Next point in time to try and coalesce particles
         self.mass = 0
         self.state = None
         self.N = len(self.particle_list)
         self.mean_gas = ct.Solution(Particle.gas_template.name + ".xml")
         self.mean_gas.name = "BatchPaSR Mean Gas"
+        self.P = 0
+        self.timeHistory_list = []
         if len(particle_list) > 0:
             self.P = particle_list[0].P # NOTE: Assume all particles have same temp
             self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
             self.updateState()
             self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
-        else:
-            self.P = 0
-            self.timeHistory_list = [];            
-        self.massList = [self.mass]
-        self.inactive_particles = []
-        self.entrain_timer = None
-        self.entrainInd = 0
         # self.chemistry_enabled = chemistry
 
     def __call__(self):
@@ -448,7 +461,7 @@ class PaSBR(object):
         particle.react(dt)
         return particle.__getstate__()
         
-    def react(self, parallel=False):
+    def react(self, parallel=False, coalesce = True):
         if parallel:
             pool = multiprocessing.Pool(processes=4)
             jobList = [(p, self.dt) for p in self.particle_list]
@@ -458,6 +471,24 @@ class PaSBR(object):
             [self.particle_list[i].__setstate__(states[i]) for i in range(0, len(self.particle_list))]
         else:
             [p.react(self.dt) for p in self.particle_list]
+
+        # Optional coalescing of particles for performance
+        if coalesce and self.time >= self.timenext:
+            self.timenext += 50*self.dt
+            tol = 1e-12
+            ind = 1
+            while ind < len(self.particle_list):
+                p0 = self.particle_list[0]
+                p = self.particle_list[ind]
+                diffH = p.state[0] - p0.state[0]
+                diffY = p.state[1:] - p0.state[1:]
+                if ((diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol and
+                    np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol):
+                    p0.combine(p)
+                    del self.particle_list[ind]
+                else:
+                    ind += 1
+
         self.time += self.dt        
         self.updateState()
     
@@ -502,7 +533,7 @@ class PaSBR(object):
         
         """ 
                 
-        # Todo: add multiple entrainment menthods here (defaulting to constant for now)
+        # Todo: add multiple entrainment methods here (defaulting to constant for now)
         if time_interval is None:
             self.entrain_timer = np.arange(0, tau_ent, tau_ent/numParticles)
         else:

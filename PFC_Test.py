@@ -37,16 +37,16 @@ def main():
     # Constant entrainment rate for now (decide on more realistic with reference)
     mdot_vit = (mfm+mam)/(1*milliseconds)
     mdot_sec = (mfm+mam)/(1*milliseconds)
-    pfc_vit = ParticleFlowController(bp, vit_reactor.thermo, mfm+mam, 1*milliseconds/20, method=massflowfcnmain)
-    pfc_sec = ParticleFlowController(bp, secondary_gas, mfs+mas, 1*milliseconds/20, method=massflowfcnsec)
+    pfc_vit = ParticleFlowController(bp, vit_reactor.thermo, mfm+mam, 1*milliseconds/40, method=massflowfcnmain)
+    pfc_sec = ParticleFlowController(bp, secondary_gas, mfs+mas, 1*milliseconds/40, method=massflowfcnsec)
     for i in range(0,t.size):
         pfc_vit.entrain(t[i])
         pfc_sec.entrain(t[i])
-        bp.react(parallel = True)
+        bp.react(coalesce = True)
         bp.mix(tau_mix=0.001*milliseconds)
         states.append(bp.mean_gas.state, t=t[i])
         enthalpy.append(bp.mean_gas.enthalpy_mass)
-
+    print(len(bp.particle_list))
     # BR + MFC Code
     [vit_reactor2, main_burner_DF] = runMainBurner(0.4, 19*milliseconds)
 
