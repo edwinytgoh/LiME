@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, "../")
 from CanteraTools import *
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 def COLimitInd(COHistory, constraint):
 
@@ -71,6 +71,52 @@ def runCase(tau_ent_cf, tau_ent_sec):
     NO_finalcorr = NO_corr[constraint_ind]
     return tau_sec, NO_finalcorr
 
-(tau_sec, NO_finalcorr) = runCase(2*1e-3, 0.01*1e-3)
-print('Reaction Time until constraint: ' + str(tau_sec*1e3) + ' ms')
-print('Final Overall 15% O2 Corrected NO concentration: ' + str(NO_finalcorr) + ' ppm')
+# Defining run cases here
+def main():
+    milliseconds = 1e-3
+    tau_ent_cf = np.array([0.1, 0.2, 1, 2, 3])*milliseconds
+    tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5])*milliseconds
+    
+    NOs = np.zeros((len(tau_ent_cf), len(tau_ent_sec)))
+    for i in range(len(tau_ent_cf)):
+        for j in range(len(tau_ent_sec)):
+            (tau_sec, NO_finalcorr) = runCase(tau_ent_cf[i], tau_ent_sec[j])
+            NOs[i, j] = NO_finalcorr
+            print('Reaction Time until constraint: ' + str(tau_sec*1e3) + ' ms')
+            print('Final Overall 15% O2 Corrected NO concentration: ' + str(NO_finalcorr) + ' ppm')    
+    # Write to file
+    np.savetxt("InfMix_FinEnt.csv", NOs, delimiter=",")
+
+    # Make some plots
+    # Constant tau_ent_sec plots:
+    fig1 = plt.figure()
+    ax1 = plt.axes()
+    ax1.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_sec')
+    plt.xlabel('Time (ms)')
+    plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
+    
+    for i in range(len(tau_ent_sec)):
+        ax1.plot(tau_ent_cf, NOs[:, i], label='tau_ent_sec = ' + str(tau_ent_sec[i]) + ' ms')
+    ax1.grid(True)
+    handles, labels = ax1.get_legend_handles_labels()
+    lgd = ax1.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
+    fig1.savefig('Const_tau_ent_sec.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    # Constant tau_ent_cf plots:
+    fig2 = plt.figure()
+    ax2 = plt.axes()
+    ax2.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_cf')
+    plt.xlabel('Time (ms)')
+    plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
+    
+    for i in range(len(tau_ent_cf)):
+        ax2.plot(tau_ent_sec, NOs[i, :], label='tau_ent_cf = ' + str(tau_ent_cf[i]) + ' ms')
+    ax2.grid(True)
+    handles, labels = ax2.get_legend_handles_labels()
+    lgd = ax2.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
+    fig2.savefig('Const_tau_ent_cf.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    # plt.show()
+
+if __name__ == "__main__":
+    main()

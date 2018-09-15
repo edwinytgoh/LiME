@@ -3,5 +3,6 @@
 __pycache__/
 .ipynb_checkpoints/
 *.png
+*.csv
 # VS Code folder
 .vscode/
