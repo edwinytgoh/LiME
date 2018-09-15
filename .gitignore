@@ -5,3 +5,4 @@ __pycache__/
 *.png
 # VS Code folder
 .vscode/
+.vscode/settings.json
