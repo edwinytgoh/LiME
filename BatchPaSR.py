@@ -385,7 +385,8 @@ class PaSBR(object):
         None 
         
         """ 
-        
+        if Particle.gas_template == None:
+            Particle.gas_template = ct.Solution("gri30.xml")
         self.column_names = ['age', 'mass', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.particle_list = particle_list
         self.N_MAX = N_MAX
@@ -653,6 +654,6 @@ class ParticleFlowController(object):
             # pdb.set_trace()
             # Add it into the reactor
             self.bp.insert(particle)
-            return self.mass*particle()
+            return self.mass, particle()
         else:
-            return self.mass, np.hstack((gas.enthalpy_mass, gas.Y))
+            return self.mass, np.hstack((self.gas.enthalpy_mass, self.gas.Y))

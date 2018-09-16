@@ -5,9 +5,9 @@ print("Hello World")
 import BatchPaSR as bp
 
 fuel = ct.Solution('gri30.xml')
-fuel.TPX = 300, P, {'CH4':1} # TODO: Come up with a more general way of doing secondary gas so that we can have both fuel and air 
+fuel.TPX = 300, 25*ct.one_atm, {'CH4':1} # TODO: Come up with a more general way of doing secondary gas so that we can have both fuel and air 
 air = ct.Solution('gri30.xml'); 
-air.TPX = 650, P, {'O2':0.21, 'N2':0.79}
+air.TPX = 650, 25*ct.one_atm, {'O2':0.21, 'N2':0.79}
 
 def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635, phi_main = 0.3719, airSplit = 1, tau_main = (20-0.158)*1e-3, tau_sec = 5*1e-3, dt = 0.001*1e-3, P = 25*ct.one_atm):
     [mfm, mam, mfs, mas] = solvePhi_airSplit(phi_global, phi_main, 100, airSplit)
@@ -16,7 +16,7 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
     mdot_main = mass_main/tau_ent_main
     mdot_sec = mass_sec/tau_ent_sec
     t = np.arange(0, tau_sec, dt)
-    
+    print(f"Length of t is {len(t)}")
     # Calculate main burner:
     [vit_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main, P=P)    
 
@@ -38,19 +38,18 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
         total_mass = remaining_main_mass + remaining_sec_mass + pasbr.mass
         system_state = (remaining_main_mass * main_state + remaining_sec_mass * sec_state + pasbr.mass * pasbr.state)/total_mass
         mean_gas.HPY = system_state[0], mean_gas.P, system_state[1:]
-        system_timeHistory.append([time, total_mass, mean_gas.T, mean_gas.mean_molecular_weight, mean_gas.enthalpy_mass] + mean_gas.Y.tolist() + mean_gas.X.tolist())
+        system_timeHistory.append([t_now, total_mass, mean_gas.T, mean_gas.mean_molecular_weight, mean_gas.enthalpy_mass] + mean_gas.Y.tolist() + mean_gas.X.tolist())
         pasbr.react()
         pasbr.mix(tau_mix = tau_mix)
 
     # Output data 
-        entrainment_zone_df = pasbr.get_timeHistory()
-        system_timeHistory = np.vstack(system_timeHistory)
-        system_timeHistory = np.hstack((t, system_timeHistory))
-        system_df = pd.DataFrame(columns=entrainment_zone_df.columns, data=system_timeHistory)
+    entrainment_zone_df = pasbr.get_timeHistory()
+    system_timeHistory = np.vstack(system_timeHistory)
+    system_df = pd.DataFrame(columns=entrainment_zone_df.columns, data=system_timeHistory)
 
-        return entrainment_zone_df, system_df, pasbr
+    return entrainment_zone_df, system_df, pasbr
 
-def getNOx(sys_df):
+def getNOx(sys_df, CO_constraint = 31.82):
     time = sys_df['age']
     NO = sys_df['X_NO']
     CO = sys_df['X_CO']
@@ -60,7 +59,9 @@ def getNOx(sys_df):
     NO_corr = correctNOx(NO, H2O, O2)
     CO_corr = correctNOx(CO, H2O, O2)
     # constraint_ind = COLimitInd(CO_corr, 32)
-    constraint_ind = np.arange(len(CO_corr))[CO_corr >= CO_constraint + 1e-12][-1] + 1
+    if len(CO_corr) > 0:
+        pdb.set_trace()
+        constraint_ind = np.arange(0,len(CO_corr))[CO_corr >= CO_constraint + 1e-12][-1] + 1
     try:
         tau_sec = t[constraint_ind]
         NO_finalcorr = NO_corr[constraint_ind]
