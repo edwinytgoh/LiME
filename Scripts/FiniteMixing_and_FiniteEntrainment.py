@@ -1,7 +1,8 @@
 import sys
 sys.path.insert(0, "../")
 from CanteraTools import *
-from BatchPaSR import PaSBR, Particle, ParticleFlowController
+print("Hello World")
+import BatchPaSR as bp
 
 fuel = ct.Solution('gri30.xml')
 fuel.TPX = 300, P, {'CH4':1} # TODO: Come up with a more general way of doing secondary gas so that we can have both fuel and air 
@@ -21,9 +22,9 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
 
     # Setup PaSBR:
     secondary_gas = mix([fuel, air], [mfs, mas], P = P)
-    pasbr = PaSBR([], N_MAX = 500, dt = dt)
-    pfc_main = ParticleFlowController(pasbr, vit_reactor.thermo, mass_main, dt, lambda t: mdot_main if t <= tau_ent_main else 0)
-    pfc_sec = ParticleFlowController(pasbr, secondary_gas, mass_sec, dt, lambda t: mdot_sec if t <= tau_ent_sec else 0)
+    pasbr = bp.PaSBR([], N_MAX = 500, dt = dt)
+    pfc_main = bp.ParticleFlowController(pasbr, vit_reactor.thermo, mass_main, dt, lambda t: mdot_main if t <= tau_ent_main else 0)
+    pfc_sec = bp.ParticleFlowController(pasbr, secondary_gas, mass_sec, dt, lambda t: mdot_sec if t <= tau_ent_sec else 0)
 
     # Setup data management: 
     mean_gas = ct.Solution("gri30.xml")
@@ -59,12 +60,18 @@ def getNOx(sys_df):
     NO_corr = correctNOx(NO, H2O, O2)
     CO_corr = correctNOx(CO, H2O, O2)
     # constraint_ind = COLimitInd(CO_corr, 32)
-    constraint_ind = np.arange(len(CO_corr))[CO_corr <= CO_constraint + 1e-12][-1] # TODO: check to see if this matches above-commented code    
-
-    tau_sec = t[constraint_ind]
-    NO_finalcorr = NO_corr[constraint_ind]
-    CO_finalcorr = CO_corr[constraint_ind]
-    return NO_finalcorr, CO_finalcorr, tau_sec    
+    constraint_ind = np.arange(len(CO_corr))[CO_corr >= CO_constraint + 1e-12][-1] + 1
+    try:
+        tau_sec = t[constraint_ind]
+        NO_finalcorr = NO_corr[constraint_ind]
+        CO_finalcorr = CO_corr[constraint_ind]
+        T_corresponding = sys_df['T'].iloc[constraint_ind]
+    except: # if constraint_ind is out of bounds, that means there's no point that meets the constraint, so return "inf" instead
+        tau_sec = 10000
+        NO_finalcorr = 10000
+        CO_finalcorr = 10000
+        T_corresponding = 0
+    return NO_finalcorr, CO_finalcorr, tau_sec, T_corresponding    
 
 def main():
     milliseconds = 1e-3;
@@ -75,7 +82,6 @@ def main():
     CO_list = []
     tau_sec_required_list = []
     ent_ratio_list = []
-    n = 0
     sys_df_list = []
     pasbr_df_list = []
     pasbr_list = []
@@ -86,8 +92,24 @@ def main():
                 sys_df_list.append(sys_df)
                 pasbr_df_list.append(pasbr_df)
                 pasbr_list.append(pasbr)
-                NO, CO, tau_sec_required = getNOx(sys_df)
+                NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
+                NO_list.append(NO)
+                CO_list.append(CO)
+                T_list.append(T_corresponding)
+                tau_sec_required_list.append(tau_sec_required)
+                ent_ratio_list.append(tau_sec_cf[i]/tau_ent_sec[j])
 
+def test():
+    print("Hello, world!")
+    tau_mix = 0.01*1e-3
+    tau_ent_main = 2.0*1e-3
+    tau_ent_sec = 1.0*1e-3
+    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec)
+    NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
+    df = pd.DataFrame(columns=['tau_mix', 'tau_ent_main', 'tau_ent_sec', 'ent_ratio', 'NO', 'CO', 'tau_sec_required', 'T'], data=np.hstack([tau_mix, tau_ent_main, tau_ent_sec, ent_ratio, NO, CO, tau_sec_required, T_corresponding]))
+    df.to_csv("limited_everything_test.csv")
 
+if __name__ == "__main__":
+    test()
 
 

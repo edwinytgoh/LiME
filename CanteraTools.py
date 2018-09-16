@@ -41,7 +41,7 @@ def runFlame(gas):
 
 def getStateAtTime(flame, tList, tRequired, mech='gri30.xml'):
     '''A function that gets the state at a desired point in time of a flame simulation performed using runFlame. 
-        Takes in a flame object, its associated time series, and the desired point in time.
+        Takes in a flame object, its associated time series, and the desired point in time (in seconds).
         Returns a new Cantera gas object with the desired state, and the corresponding index in the flame at which the point was found. 
 
         Example usage: gas, t_ind = getStateAtTime(flame, time, t_req)'''

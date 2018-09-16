@@ -476,7 +476,8 @@ class PaSBR(object):
                 if self._canCombine(p1,p2):
                     p1 += p2
                     particles_to_delete.append(i)
-            [del self.particle_list[ind] for ind in particles_to_delete] # delete particles 
+            for ind in particles_to_delete:
+                del self.particle_list[ind] # delete particles 
             p1_ind += 1
 
         
