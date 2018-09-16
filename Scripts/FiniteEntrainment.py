@@ -12,20 +12,29 @@ def COLimitInd(COHistory, constraint):
     index = min(index, len(COHistory))    # Avoid index out of bounds
     return index
 
+fuel = ct.Solution('gri30.xml')
+fuel.TPX = 300, P, {'CH4':1} # TODO: Come up with a more general way of doing secondary gas so that we can have both fuel and air 
+air = ct.Solution('gri30.xml'); 
+air.TPX = 650, P, {'O2':0.21, 'N2':0.79}
+
 def runCase(tau_ent_cf, tau_ent_sec):
     milliseconds = 0.001
-
+    P = 25*ct.one_atm
+    CO_constraint = 31.82 # corrected ppm
     [mfm, mam, mfs, mas] = solvePhi_airSplit(0.635, 0.3719, 100, 1)
+    main_mass = mfm + mam
+    jet_mass = mfs + mas
     [vit_reactor, main_burner_DF] = runMainBurner(0.3719, 19.842*milliseconds)
 
     secondary_gas = ct.Solution('gri30.xml')
-    secondary_gas.TPX = 300, 25*ct.one_atm, {'CH4':1}
+    secondary_gas.TPX = 300, P, {'CH4':1}
     sec_reactor = ct.ConstPressureReactor(secondary_gas)
 
     totalTime = 3.0*milliseconds
-    interface_gas = ct.Solution('gri30.xml')
-    interface_gas.TPX = 300, 25*ct.one_atm, {'AR':1}
-    interface_reactor = ct.ConstPressureReactor(interface_gas, volume = 1/interface_gas.density_mass*1e-6)
+    interface_gas = mix([vit_reactor.thermo, secondary_gas], [main_mass, jet_mass])
+    initial_secReactor_mass = 1e-6 # kg
+    interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_secReactor_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
+
 
     mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
     mdot_vit = (mfm+mam)/tau_ent_cf
@@ -48,24 +57,28 @@ def runCase(tau_ent_cf, tau_ent_sec):
         reactorNet.advance(tnow)
 
         # Get the number of moles in each reactor since we're working with mole fractions
-        mass_vit = (mam + mfm) - mdot_vit*min(tnow, tau_ent_cf)
+        mass_vit = main_mass - mdot_vit*min(tnow, tau_ent_cf)
         mole_vit = mass_vit/vit_reactor.thermo.mean_molecular_weight
-        mass_sec = (mas + mfs) - mdot_sec*min(tnow, tau_ent_sec)
+
+        mass_sec = jet_mass - mdot_sec*min(tnow, tau_ent_sec)
         mole_sec = mass_sec/sec_reactor.thermo.mean_molecular_weight
-        mass_int = (mam + mfm) - mass_vit + (mas + mfs) - mass_sec
+        
+        mass_int = main_mass - mass_vit + jet_mass - mass_sec
         mole_int = mass_int/interface_reactor.thermo.mean_molecular_weight
 
-        temp_arr = interface_reactor.thermo.X * mole_int + vit_reactor.thermo.X * mole_vit + sec_reactor.thermo.X * mole_sec
-        temp_arr /= (mole_int + mole_vit + mole_sec)
-        species_NO = np.append(species_NO, temp_arr[interface_reactor.thermo.species_index('NO')])
-        species_CO = np.append(species_CO, temp_arr[interface_reactor.thermo.species_index('CO')])
-        species_O2 = np.append(species_O2, temp_arr[interface_reactor.thermo.species_index('O2')])
-        species_H2O = np.append(species_H2O, temp_arr[interface_reactor.thermo.species_index('H2O')])
+        X_system = interface_reactor.thermo.X * mole_int + vit_reactor.thermo.X * mole_vit + sec_reactor.thermo.X * mole_sec
+        X_system /= (mole_int + mole_vit + mole_sec)
+        
+        species_NO = np.append(species_NO, X_system[interface_reactor.thermo.species_index('NO')])
+        species_CO = np.append(species_CO, X_system[interface_reactor.thermo.species_index('CO')])
+        species_O2 = np.append(species_O2, X_system[interface_reactor.thermo.species_index('O2')])
+        species_H2O = np.append(species_H2O, X_system[interface_reactor.thermo.species_index('H2O')])
         # enthalpy.append(sec_reactor.thermo.enthalpy_mass)
 
     NO_corr = correctNOx(species_NO, species_H2O, species_O2)
     CO_corr = correctNOx(species_CO, species_H2O, species_O2)
-    constraint_ind = COLimitInd(CO_corr, 32)
+    # constraint_ind = COLimitInd(CO_corr, 32)
+    constraint_ind = np.arange(len(CO_corr))[CO_corr <= CO_constraint + 1e-12][-1] # TODO: check to see if this matches above-commented code    
 
     tau_sec = t[constraint_ind]
     NO_finalcorr = NO_corr[constraint_ind]
@@ -92,11 +105,11 @@ def main():
     fig1 = plt.figure()
     ax1 = plt.axes()
     ax1.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_sec')
-    plt.xlabel('Time (ms)')
+    plt.xlabel('tau_ent_cf (ms)')
     plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
     
     for i in range(len(tau_ent_sec)):
-        ax1.plot(tau_ent_cf, NOs[:, i], label='tau_ent_sec = ' + str(tau_ent_sec[i]) + ' ms')
+        ax1.plot(tau_ent_cf, NOs[:, i], label='tau_ent_sec = ' + str(tau_ent_sec[i]*1e3) + ' ms')
     ax1.grid(True)
     handles, labels = ax1.get_legend_handles_labels()
     lgd = ax1.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
@@ -106,11 +119,11 @@ def main():
     fig2 = plt.figure()
     ax2 = plt.axes()
     ax2.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_cf')
-    plt.xlabel('Time (ms)')
+    plt.xlabel('tau_ent_sec (ms)')
     plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
     
     for i in range(len(tau_ent_cf)):
-        ax2.plot(tau_ent_sec, NOs[i, :], label='tau_ent_cf = ' + str(tau_ent_cf[i]) + ' ms')
+        ax2.plot(tau_ent_sec, NOs[i, :], label='tau_ent_cf = ' + str(tau_ent_cf[i]*1e3) + ' ms')
     ax2.grid(True)
     handles, labels = ax2.get_legend_handles_labels()
     lgd = ax2.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
