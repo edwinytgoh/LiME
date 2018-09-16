@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 
 def COLimitInd(COHistory, constraint):
 
-    index = len(COHistory) - 1
-    while COHistory[index] < constraint:
-        index -= 1
-    index += 1  # Go back one so within constraint
-    index = min(index, len(COHistory))    # Avoid index out of bounds
-    return index
+    return np.arange(len(COHistory))[COHistory > constraint][-1] + 1
+    # index = len(COHistory) - 1
+    # while COHistory[index] < constraint:
+    #     index -= 1
+    # index += 1  # Go back one so within constraint
+    # index = min(index, len(COHistory))    # Avoid index out of bounds
+    # return index
 
 fuel = ct.Solution('gri30.xml')
 fuel.TPX = 300, P, {'CH4':1} # TODO: Come up with a more general way of doing secondary gas so that we can have both fuel and air 
@@ -31,10 +32,16 @@ def runCase(tau_ent_cf, tau_ent_sec):
     sec_reactor = ct.ConstPressureReactor(secondary_gas)
 
     totalTime = 3.0*milliseconds
+<<<<<<< HEAD
     interface_gas = mix([vit_reactor.thermo, secondary_gas], [main_mass, jet_mass])
     initial_secReactor_mass = 1e-6 # kg
     interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_secReactor_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
 
+=======
+    interface_gas = ct.Solution('gri30.xml')
+    interface_gas.TPX = vit_reactor.thermo.T, 25*ct.one_atm, vit_reactor.thermo.X
+    interface_reactor = ct.ConstPressureReactor(interface_gas, volume = 1/interface_gas.density_mass*1e-6)
+>>>>>>> 7020a258a76ae72d02dc4d78893491dadb69a87a
 
     mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
     mdot_vit = (mfm+mam)/tau_ent_cf
@@ -45,18 +52,23 @@ def runCase(tau_ent_cf, tau_ent_sec):
     mfc_sec.set_mass_flow_rate(lambda t: mdot_sec if t <= tau_ent_sec else 0)
 
     reactorNet = ct.ReactorNet([vit_reactor, sec_reactor, interface_reactor])
+    t = np.arange(0, totalTime, 0.001*milliseconds)
+    mean_gas = ct.Solution('gri30.xml')
     # states = []
     species_NO = np.array([])
     species_CO = np.array([])
     species_O2 = np.array([])
     species_H2O = np.array([])
+    columnNames = ['time', 'T', 'NOppmvd', 'COppmvd']
+    dataArray = np.array([None] * len(t) * len(columnNames)).reshape(len(t), len(columnNames))
     # enthalpy = []
 
-    t = np.arange(0, totalTime, 0.001*milliseconds)
-    for tnow in t:
+    for i in range(len(t)):
+        tnow = t[i]
         reactorNet.advance(tnow)
 
         # Get the number of moles in each reactor since we're working with mole fractions
+<<<<<<< HEAD
         mass_vit = main_mass - mdot_vit*min(tnow, tau_ent_cf)
         mole_vit = mass_vit/vit_reactor.thermo.mean_molecular_weight
 
@@ -79,6 +91,33 @@ def runCase(tau_ent_cf, tau_ent_sec):
     CO_corr = correctNOx(species_CO, species_H2O, species_O2)
     # constraint_ind = COLimitInd(CO_corr, 32)
     constraint_ind = np.arange(len(CO_corr))[CO_corr <= CO_constraint + 1e-12][-1] # TODO: check to see if this matches above-commented code    
+=======
+        mass_vit = (mam + mfm) - mdot_vit*min(tnow, tau_ent_cf)
+        mass_sec = (mas + mfs) - mdot_sec*min(tnow, tau_ent_sec)
+        mass_int = (mam + mfm) - mass_vit + (mas + mfs) - mass_sec
+        massFrac = ((interface_reactor.thermo.Y * mass_int + vit_reactor.thermo.Y * mass_vit + sec_reactor.thermo.Y * mass_sec) /
+                    (mass_int + mass_vit + mass_sec))
+        enthalpy = ((interface_reactor.thermo.enthalpy_mass * mass_int + vit_reactor.thermo.enthalpy_mass * mass_vit + sec_reactor.thermo.enthalpy_mass * mass_sec) / 
+                    (mass_int + mass_vit + mass_sec))
+        mean_gas.HPY = enthalpy, 25*ct.one_atm, massFrac
+
+        species_NOCO = mean_gas['NO', 'CO'].X
+        species_O2 = mean_gas['O2'].X
+        species_H2O = mean_gas['H2O'].X
+        NOCOppmvd = correctNOx(species_NOCO, species_H2O, species_O2)
+        
+        dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1]]) 
+
+    timetraceDF = pd.DataFrame(data=dataArray, columns=columnNames)
+    timetraceDF.set_index = 'time'
+    table = pa.Table.from_pandas(timetraceDF)
+    filename = 'infmix_cf_{0:.2f}ms_sec_{1:.2f}ms.pickle'.format(tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
+    pq.write_table(table, filename)
+
+    NO_corr = dataArray[:, 2]
+    CO_corr = dataArray[:, 3]
+    constraint_ind = COLimitInd(CO_corr, 32)
+>>>>>>> 7020a258a76ae72d02dc4d78893491dadb69a87a
 
     tau_sec = t[constraint_ind]
     NO_finalcorr = NO_corr[constraint_ind]
@@ -91,16 +130,19 @@ def main():
     tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5])*milliseconds
     
     NOs = np.zeros((len(tau_ent_cf), len(tau_ent_sec)))
+    tau_sec = np.zeros((len(tau_ent_cf), len(tau_ent_sec)))
     for i in range(len(tau_ent_cf)):
         for j in range(len(tau_ent_sec)):
-            (tau_sec, NO_finalcorr) = runCase(tau_ent_cf[i], tau_ent_sec[j])
+            (tau_sec[i, j], NO_finalcorr) = runCase(tau_ent_cf[i], tau_ent_sec[j])
             NOs[i, j] = NO_finalcorr
-            print('Reaction Time until constraint: ' + str(tau_sec*1e3) + ' ms')
+            print('Reaction Time until constraint: ' + str(tau_sec[i, j]*1e3) + ' ms')
             print('Final Overall 15% O2 Corrected NO concentration: ' + str(NO_finalcorr) + ' ppm')    
     # Write to file
     np.savetxt("InfMix_FinEnt.csv", NOs, delimiter=",")
 
     # Make some plots
+    tau_ent_cf /= milliseconds
+    tau_ent_sec /= milliseconds
     # Constant tau_ent_sec plots:
     fig1 = plt.figure()
     ax1 = plt.axes()
@@ -128,6 +170,31 @@ def main():
     handles, labels = ax2.get_legend_handles_labels()
     lgd = ax2.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
     fig2.savefig('Const_tau_ent_cf.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    # tau_sec plots
+    fig3 = plt.figure()
+    ax3 = plt.axes()
+    ax3.set_title('Variation of time to meet CO constrained (tau_sec) over tau_ent_cf')
+    plt.xlabel('tau_ent_cf (ms)')
+    plt.ylabel('tau_sec (ms)')
+    for i in range(len(tau_ent_sec)):
+        ax3.plot(tau_ent_cf, tau_sec[:, i]/milliseconds, label='tau_ent_sec = ' + str(tau_ent_sec[i]) + ' ms')
+    ax3.grid(True)
+    handles, labels = ax3.get_legend_handles_labels()
+    lgd = ax3.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
+    fig3.savefig('tau_sec_v_ent_cf.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    fig4 = plt.figure()
+    ax4 = plt.axes()
+    ax4.set_title('Variation of time to meet CO constrained (tau_sec) over tau_ent_sec')
+    plt.xlabel('tau_ent_sec (ms)')
+    plt.ylabel('tau_sec (ms)')
+    for i in range(len(tau_ent_cf)):
+        ax4.plot(tau_ent_sec, tau_sec[i, :]/milliseconds, label='tau_ent_cf = ' + str(tau_ent_cf[i]) + ' ms')
+    ax4.grid(True)
+    handles, labels = ax4.get_legend_handles_labels()
+    lgd = ax4.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
+    fig4.savefig('tau_sec_v_ent_sec.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     # plt.show()
 
