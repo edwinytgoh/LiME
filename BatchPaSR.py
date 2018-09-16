@@ -394,7 +394,7 @@ class PaSBR(object):
         self.time = 0
         self.timenext = 10*dt   # Next point in time to try and coalesce particles
         self.mass = 0
-        self.state = None
+        self.state = 0
         self.N = len(self.particle_list)
         self.mean_gas = ct.Solution(Particle.gas_template.name + ".xml")
         self.mean_gas.name = "BatchPaSR Mean Gas"
@@ -466,12 +466,19 @@ class PaSBR(object):
         self.timenext += 50*self.dt
         tol = 1e-12
         ind = 1
-        for p1 in self.particle_list:
+        p1_ind = 0
+        while p1_ind < len(self.particle_list):
+            p1 = self.particle_list[p1_ind]
+            # loop through rest of the particles in the list to gobble if possible
+            particles_to_delete = []
             for i in range(1, len(self.particle_list)):
                 p2 = self.particle_list[i]
-                if _canCombine(p1,p2):
+                if self._canCombine(p1,p2):
                     p1 += p2
-                    del self.particle_list[i]
+                    particles_to_delete.append(i)
+            [del self.particle_list[ind] for ind in particles_to_delete] # delete particles 
+            p1_ind += 1
+
         
         # while ind < len(self.particle_list):
         #     p0 = self.particle_list[0]
@@ -500,7 +507,7 @@ class PaSBR(object):
         # Constant k:
         k = -self.dt/tau_mix # note: actually, k = -0.5*C_phi*omega*dt, but since C_phi is usually 2, i canceled it out.
         k_avg = k*self.state
-        [p(p * (k + 1) - k_avg) for p in self.particle_list]
+        [p(p * (k + 1) - k_avg) for p in self.particle_list] # setting p.state_new = p.state_old + k*p.state_old - k*avg_state
         self.updateState()
     
     def prepEntrainment(self, added_gas, total_mass_added, tau_ent, numParticles=10, method='constant', time_interval = None):
@@ -645,3 +652,6 @@ class ParticleFlowController(object):
             # pdb.set_trace()
             # Add it into the reactor
             self.bp.insert(particle)
+            return self.mass*particle()
+        else:
+            return self.mass, np.hstack((gas.enthalpy_mass, gas.Y))
