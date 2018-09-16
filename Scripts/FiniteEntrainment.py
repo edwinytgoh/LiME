@@ -25,7 +25,7 @@ def runCase(tau_ent_cf, tau_ent_sec):
 
     totalTime = 3.0*milliseconds
     interface_gas = ct.Solution('gri30.xml')
-    interface_gas.TPX = 300, 25*ct.one_atm, {'AR':1}
+    interface_gas.TPX = vit_reactor.thermo.T, 25*ct.one_atm, vit_reactor.thermo.X
     interface_reactor = ct.ConstPressureReactor(interface_gas, volume = 1/interface_gas.density_mass*1e-6)
 
     mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
@@ -37,35 +37,46 @@ def runCase(tau_ent_cf, tau_ent_sec):
     mfc_sec.set_mass_flow_rate(lambda t: mdot_sec if t <= tau_ent_sec else 0)
 
     reactorNet = ct.ReactorNet([vit_reactor, sec_reactor, interface_reactor])
+    t = np.arange(0, totalTime, 0.001*milliseconds)
+    mean_gas = ct.Solution('gri30.xml')
     # states = []
     species_NO = np.array([])
     species_CO = np.array([])
     species_O2 = np.array([])
     species_H2O = np.array([])
+    columnNames = ['time', 'T', 'NOppmvd', 'COppmvd']
+    dataArray = np.array([None] * len(t) * len(columnNames)).reshape(len(t), len(columnNames))
     # enthalpy = []
 
-    t = np.arange(0, totalTime, 0.001*milliseconds)
-    for tnow in t:
+    for i in range(len(t)):
+        tnow = t[i]
         reactorNet.advance(tnow)
 
         # Get the number of moles in each reactor since we're working with mole fractions
         mass_vit = (mam + mfm) - mdot_vit*min(tnow, tau_ent_cf)
-        mole_vit = mass_vit/vit_reactor.thermo.mean_molecular_weight
         mass_sec = (mas + mfs) - mdot_sec*min(tnow, tau_ent_sec)
-        mole_sec = mass_sec/sec_reactor.thermo.mean_molecular_weight
         mass_int = (mam + mfm) - mass_vit + (mas + mfs) - mass_sec
-        mole_int = mass_int/interface_reactor.thermo.mean_molecular_weight
+        massFrac = ((interface_reactor.thermo.Y * mass_int + vit_reactor.thermo.Y * mass_vit + sec_reactor.thermo.Y * mass_sec) /
+                    (mass_int + mass_vit + mass_sec))
+        enthalpy = ((interface_reactor.thermo.enthalpy_mass * mass_int + vit_reactor.thermo.enthalpy_mass * mass_vit + sec_reactor.thermo.enthalpy_mass * mass_sec) / 
+                    (mass_int + mass_vit + mass_sec))
+        mean_gas.HPY = enthalpy, 25*ct.one_atm, massFrac
 
-        temp_arr = interface_reactor.thermo.X * mole_int + vit_reactor.thermo.X * mole_vit + sec_reactor.thermo.X * mole_sec
-        temp_arr /= (mole_int + mole_vit + mole_sec)
-        species_NO = np.append(species_NO, temp_arr[interface_reactor.thermo.species_index('NO')])
-        species_CO = np.append(species_CO, temp_arr[interface_reactor.thermo.species_index('CO')])
-        species_O2 = np.append(species_O2, temp_arr[interface_reactor.thermo.species_index('O2')])
-        species_H2O = np.append(species_H2O, temp_arr[interface_reactor.thermo.species_index('H2O')])
-        # enthalpy.append(sec_reactor.thermo.enthalpy_mass)
+        species_NOCO = mean_gas['NO', 'CO'].X
+        species_O2 = mean_gas['O2'].X
+        species_H2O = mean_gas['H2O'].X
+        NOCOppmvd = correctNOx(species_NOCO, species_H2O, species_O2)
+        
+        dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1]]) 
 
-    NO_corr = correctNOx(species_NO, species_H2O, species_O2)
-    CO_corr = correctNOx(species_CO, species_H2O, species_O2)
+    timetraceDF = pd.DataFrame(data=dataArray, columns=columnNames)
+    timetraceDF.set_index = 'time'
+    table = pa.Table.from_pandas(timetraceDF)
+    filename = 'infmix_cf_{0:.2f}ms_sec_{1:.2f}ms.pickle'.format(tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
+    pq.write_table(table, filename)
+
+    NO_corr = dataArray[:, 2]
+    CO_corr = dataArray[:, 3]
     constraint_ind = COLimitInd(CO_corr, 32)
 
     tau_sec = t[constraint_ind]
@@ -79,11 +90,12 @@ def main():
     tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5])*milliseconds
     
     NOs = np.zeros((len(tau_ent_cf), len(tau_ent_sec)))
+    tau_sec = np.zeros((len(tau_ent_cf), len(tau_ent_sec)))
     for i in range(len(tau_ent_cf)):
         for j in range(len(tau_ent_sec)):
-            (tau_sec, NO_finalcorr) = runCase(tau_ent_cf[i], tau_ent_sec[j])
+            (tau_sec[i, j], NO_finalcorr) = runCase(tau_ent_cf[i], tau_ent_sec[j])
             NOs[i, j] = NO_finalcorr
-            print('Reaction Time until constraint: ' + str(tau_sec*1e3) + ' ms')
+            print('Reaction Time until constraint: ' + str(tau_sec[i, j]*1e3) + ' ms')
             print('Final Overall 15% O2 Corrected NO concentration: ' + str(NO_finalcorr) + ' ppm')    
     # Write to file
     np.savetxt("InfMix_FinEnt.csv", NOs, delimiter=",")
@@ -118,6 +130,31 @@ def main():
     handles, labels = ax2.get_legend_handles_labels()
     lgd = ax2.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
     fig2.savefig('Const_tau_ent_cf.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    # tau_sec plots
+    fig3 = plt.figure()
+    ax3 = plt.axes()
+    ax3.set_title('Variation of time to meet CO constrained (tau_sec) over tau_ent_cf')
+    plt.xlabel('tau_ent_cf (ms)')
+    plt.ylabel('tau_sec (ms)')
+    for i in range(len(tau_ent_sec)):
+        ax3.plot(tau_ent_cf, tau_sec[:, i]/milliseconds, label='tau_ent_sec = ' + str(tau_ent_sec[i]) + ' ms')
+    ax3.grid(True)
+    handles, labels = ax3.get_legend_handles_labels()
+    lgd = ax3.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
+    fig3.savefig('tau_sec_v_ent_cf.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    fig4 = plt.figure()
+    ax4 = plt.axes()
+    ax4.set_title('Variation of time to meet CO constrained (tau_sec) over tau_ent_sec')
+    plt.xlabel('tau_ent_sec (ms)')
+    plt.ylabel('tau_sec (ms)')
+    for i in range(len(tau_ent_cf)):
+        ax4.plot(tau_ent_sec, tau_sec[i, :]/milliseconds, label='tau_ent_cf = ' + str(tau_ent_cf[i]) + ' ms')
+    ax4.grid(True)
+    handles, labels = ax4.get_legend_handles_labels()
+    lgd = ax4.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
+    fig4.savefig('tau_sec_v_ent_sec.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     # plt.show()
 

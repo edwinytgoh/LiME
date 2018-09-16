@@ -4,6 +4,7 @@ __pycache__/
 .ipynb_checkpoints/
 *.png
 *.csv
+infmix*.pickle
 # VS Code folder
 .vscode/
 .vscode/settings.json
