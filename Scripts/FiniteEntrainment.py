@@ -32,16 +32,10 @@ def runCase(tau_ent_cf, tau_ent_sec):
     sec_reactor = ct.ConstPressureReactor(secondary_gas)
 
     totalTime = 3.0*milliseconds
-<<<<<<< HEAD
     interface_gas = mix([vit_reactor.thermo, secondary_gas], [main_mass, jet_mass])
     initial_secReactor_mass = 1e-6 # kg
     interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_secReactor_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
 
-=======
-    interface_gas = ct.Solution('gri30.xml')
-    interface_gas.TPX = vit_reactor.thermo.T, 25*ct.one_atm, vit_reactor.thermo.X
-    interface_reactor = ct.ConstPressureReactor(interface_gas, volume = 1/interface_gas.density_mass*1e-6)
->>>>>>> 7020a258a76ae72d02dc4d78893491dadb69a87a
 
     mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
     mdot_vit = (mfm+mam)/tau_ent_cf
@@ -68,30 +62,6 @@ def runCase(tau_ent_cf, tau_ent_sec):
         reactorNet.advance(tnow)
 
         # Get the number of moles in each reactor since we're working with mole fractions
-<<<<<<< HEAD
-        mass_vit = main_mass - mdot_vit*min(tnow, tau_ent_cf)
-        mole_vit = mass_vit/vit_reactor.thermo.mean_molecular_weight
-
-        mass_sec = jet_mass - mdot_sec*min(tnow, tau_ent_sec)
-        mole_sec = mass_sec/sec_reactor.thermo.mean_molecular_weight
-        
-        mass_int = main_mass - mass_vit + jet_mass - mass_sec
-        mole_int = mass_int/interface_reactor.thermo.mean_molecular_weight
-
-        X_system = interface_reactor.thermo.X * mole_int + vit_reactor.thermo.X * mole_vit + sec_reactor.thermo.X * mole_sec
-        X_system /= (mole_int + mole_vit + mole_sec)
-        
-        species_NO = np.append(species_NO, X_system[interface_reactor.thermo.species_index('NO')])
-        species_CO = np.append(species_CO, X_system[interface_reactor.thermo.species_index('CO')])
-        species_O2 = np.append(species_O2, X_system[interface_reactor.thermo.species_index('O2')])
-        species_H2O = np.append(species_H2O, X_system[interface_reactor.thermo.species_index('H2O')])
-        # enthalpy.append(sec_reactor.thermo.enthalpy_mass)
-
-    NO_corr = correctNOx(species_NO, species_H2O, species_O2)
-    CO_corr = correctNOx(species_CO, species_H2O, species_O2)
-    # constraint_ind = COLimitInd(CO_corr, 32)
-    constraint_ind = np.arange(len(CO_corr))[CO_corr <= CO_constraint + 1e-12][-1] # TODO: check to see if this matches above-commented code    
-=======
         mass_vit = (mam + mfm) - mdot_vit*min(tnow, tau_ent_cf)
         mass_sec = (mas + mfs) - mdot_sec*min(tnow, tau_ent_sec)
         mass_int = (mam + mfm) - mass_vit + (mas + mfs) - mass_sec
@@ -117,7 +87,6 @@ def runCase(tau_ent_cf, tau_ent_sec):
     NO_corr = dataArray[:, 2]
     CO_corr = dataArray[:, 3]
     constraint_ind = COLimitInd(CO_corr, 32)
->>>>>>> 7020a258a76ae72d02dc4d78893491dadb69a87a
 
     tau_sec = t[constraint_ind]
     NO_finalcorr = NO_corr[constraint_ind]
