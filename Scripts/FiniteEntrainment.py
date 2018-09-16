@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 
 def COLimitInd(COHistory, constraint):
 
-    index = len(COHistory) - 1
-    while COHistory[index] < constraint:
-        index -= 1
-    index += 1  # Go back one so within constraint
-    index = min(index, len(COHistory))    # Avoid index out of bounds
-    return index
+    return np.arange(len(COHistory))[COHistory > constraint][-1] + 1
+    # index = len(COHistory) - 1
+    # while COHistory[index] < constraint:
+    #     index -= 1
+    # index += 1  # Go back one so within constraint
+    # index = min(index, len(COHistory))    # Avoid index out of bounds
+    # return index
 
 def runCase(tau_ent_cf, tau_ent_sec):
     milliseconds = 0.001
@@ -88,11 +89,13 @@ def main():
     np.savetxt("InfMix_FinEnt.csv", NOs, delimiter=",")
 
     # Make some plots
+    tau_ent_cf /= milliseconds
+    tau_ent_sec /= milliseconds
     # Constant tau_ent_sec plots:
     fig1 = plt.figure()
     ax1 = plt.axes()
     ax1.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_sec')
-    plt.xlabel('Time (ms)')
+    plt.xlabel('tau_ent_cf (ms)')
     plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
     
     for i in range(len(tau_ent_sec)):
@@ -106,7 +109,7 @@ def main():
     fig2 = plt.figure()
     ax2 = plt.axes()
     ax2.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_cf')
-    plt.xlabel('Time (ms)')
+    plt.xlabel('tau_ent_sec (ms)')
     plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
     
     for i in range(len(tau_ent_cf)):
