@@ -496,8 +496,13 @@ class PaSBR(object):
     
     def _canCombine(p1, p2, tol=1e-12):
         diffH = p2.state[0] - p1.state[0]
-        diffY = p2.state[1:] - p1.state[1:]        
-        return ((diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol and np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol)
+        diffY = p2.state[1:] - p1.state[1:]
+        machine_epsilon = np.finfo(np.float64).eps
+        pdb.set_trace()
+        diffH_is_small = (diffH/(p1.state[0] + machine_epsilon)**2 < tol
+        # diffY_is_small = np.linalg.norm(np.divide(diffY, p1.state[1:] + machine_epsilon)) < tol        
+        # diffY_is_small = np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol
+        return ( diffH_is_small and diffY_is_small )
 
 #     def iem(cls, paticle_list)
     def _iem(self, particle_list, k):
