@@ -2,7 +2,7 @@ import cantera as ct
 import numpy as np 
 import pandas as pd
 import time 
-import matplotlib.pylab as plt 
+import matplotlib.pyplot as plt 
 import pdb 
 from argparse import ArgumentParser
 import os.path
@@ -477,8 +477,11 @@ class PaSBR(object):
                 if self._canCombine(p1,p2):
                     p1 += p2
                     particles_to_delete.append(i)
+
             for ind in particles_to_delete:
-                del self.particle_list[ind] # delete particles 
+                if ind < len(self.particle_list):
+                    del self.particle_list[ind] # delete particles 
+            
             p1_ind += 1
 
         
@@ -500,7 +503,6 @@ class PaSBR(object):
         diffH = p2.state[0] - p1.state[0]
         diffY = p2.state[1:] - p1.state[1:]
         machine_epsilon = np.finfo(np.float64).eps
-        pdb.set_trace()
         diffH_is_small = (diffH/(H_1 + machine_epsilon))**2 < tol
         diffY_is_small = np.linalg.norm(np.divide(diffY, Y_1 + machine_epsilon)) < tol        
         # diffY_is_small = np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol
@@ -664,3 +666,8 @@ class ParticleFlowController(object):
             return self.mass, particle()
         else:
             return self.mass, np.hstack((self.gas.enthalpy_mass, self.gas.Y))
+    
+if __name__ == "__main__":
+    gas = ct.Solution("gri30.xml");
+    p1 = Particle.fromGas(gas);
+    gas()

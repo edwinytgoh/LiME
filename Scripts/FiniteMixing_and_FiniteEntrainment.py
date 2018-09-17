@@ -30,7 +30,7 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
     mean_gas = ct.Solution("gri30.xml")
     mean_gas.TPX = secondary_gas.TPX
     system_timeHistory = []
-
+    num_particles_list = []
     # Simulation loop: 
     for t_now in t:
         [remaining_main_mass, main_state] = pfc_main.entrain(t_now)
@@ -41,11 +41,13 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
         system_timeHistory.append([t_now, total_mass, mean_gas.T, mean_gas.mean_molecular_weight, mean_gas.enthalpy_mass] + mean_gas.Y.tolist() + mean_gas.X.tolist())
         pasbr.react()
         pasbr.mix(tau_mix = tau_mix)
+        num_particles_list.append(len(pasbr.particle_list))
 
     # Output data 
     entrainment_zone_df = pasbr.get_timeHistory()
     system_timeHistory = np.vstack(system_timeHistory)
     system_df = pd.DataFrame(columns=entrainment_zone_df.columns, data=system_timeHistory)
+    system_df['num_particles'] = np.array(num_particles_list)
 
     return entrainment_zone_df, system_df, pasbr
 
@@ -60,10 +62,9 @@ def getNOx(sys_df, CO_constraint = 31.82):
     CO_corr = correctNOx(CO, H2O, O2)
     # constraint_ind = COLimitInd(CO_corr, 32)
     if len(CO_corr) > 0:
-        pdb.set_trace()
         constraint_ind = np.arange(0,len(CO_corr))[CO_corr >= CO_constraint + 1e-12][-1] + 1
     try:
-        tau_sec = t[constraint_ind]
+        tau_sec = time[constraint_ind]
         NO_finalcorr = NO_corr[constraint_ind]
         CO_finalcorr = CO_corr[constraint_ind]
         T_corresponding = sys_df['T'].iloc[constraint_ind]
@@ -79,17 +80,27 @@ def main():
     tau_ent_cf = np.array([0.1, 0.2, 1, 2, 3])*milliseconds
     tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 3.0])*milliseconds    
     tau_mix = np.array([0.01, 0.05, 0.1, 0.3])*milliseconds
+
     NO_list = []
     CO_list = []
+    T_list = []
     tau_sec_required_list = []
     ent_ratio_list = []
     sys_df_list = []
     pasbr_df_list = []
     pasbr_list = []
+    cf_list = []
+    sec_list = []
+    mix_list = []
+
+    time_taken_list = []
+    avg_particles_list = []
     for i in range(0, len(tau_ent_cf)):
         for j in range(0, len(tau_ent_sec)):
             for k in range(0, len(tau_mix)):
-                pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix[k], tau_ent_cf[i], tau_ent_sec[j])
+                t1 = time.time();
+                pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix[k], tau_ent_cf[i], tau_ent_sec[j], tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
+                t2 = time.time();
                 sys_df_list.append(sys_df)
                 pasbr_df_list.append(pasbr_df)
                 pasbr_list.append(pasbr)
@@ -98,19 +109,39 @@ def main():
                 CO_list.append(CO)
                 T_list.append(T_corresponding)
                 tau_sec_required_list.append(tau_sec_required)
-                ent_ratio_list.append(tau_sec_cf[i]/tau_ent_sec[j])
+                ent_ratio_list.append(tau_ent_cf[i]/tau_ent_sec[j])
 
+                cf_list.append(tau_ent_cf[i])
+                sec_list.append(tau_ent_sec[j])
+                mix_list.append(tau_mix[k])
+
+                avg_particles_list.append(sys_df['num_particles'].mean())
+                time_taken_list.append(t2-t1)
+    
+    data = np.vstack((cf_list, sec_list, mix_list, ent_ratio_list, NO_list, CO_list, T_list, tau_sec_required_list, avg_particles_list, time_taken_list))
+    df = pd.DataFrame(data=np.transpose(data), columns = ['tau_ent_main', 'tau_ent_sec', 'tau_mix', 'ent_ratio', 'NO', 'CO', 'T', 'tau_sec_required', 'avg_num_particles', 'time_taken'])
+    df.to_csv("finite_study.csv");
+    dataFrame_to_pyarrow(df, "finite_study.pickle")
 def test():
+
     print("Hello, world!")
     tau_mix = 0.01*1e-3
     tau_ent_main = 2.0*1e-3
     tau_ent_sec = 1.0*1e-3
-    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec)
-    NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
+    ent_ratio = tau_ent_main/tau_ent_sec
+    # pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec)
+    # NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
+    NO = 1
+    CO = 1
+    tau_sec_required = 1
+    T_corresponding = 1
     df = pd.DataFrame(columns=['tau_mix', 'tau_ent_main', 'tau_ent_sec', 'ent_ratio', 'NO', 'CO', 'tau_sec_required', 'T'], data=np.hstack([tau_mix, tau_ent_main, tau_ent_sec, ent_ratio, NO, CO, tau_sec_required, T_corresponding]))
     df.to_csv("limited_everything_test.csv")
 
 if __name__ == "__main__":
-    test()
+    t1 = time.time();    
+    main()
+    t2 = time.time()
+    print(f"Time taken = {(t2-t1)/60:.2f} minutes")
 
 
