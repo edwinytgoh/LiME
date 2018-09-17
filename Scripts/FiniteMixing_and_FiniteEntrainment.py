@@ -3,6 +3,7 @@ sys.path.insert(0, "../")
 from CanteraTools import *
 print("Hello World")
 import BatchPaSR as bp
+import os
 
 fuel = ct.Solution('gri30.xml')
 fuel.TPX = 300, 25*ct.one_atm, {'CH4':1} # TODO: Come up with a more general way of doing secondary gas so that we can have both fuel and air 
@@ -62,7 +63,11 @@ def getNOx(sys_df, CO_constraint = 31.82):
     CO_corr = correctNOx(CO, H2O, O2)
     # constraint_ind = COLimitInd(CO_corr, 32)
     if len(CO_corr) > 0:
-        constraint_ind = np.arange(0,len(CO_corr))[CO_corr >= CO_constraint + 1e-12][-1] + 1
+        mask = np.arange(0,len(CO_corr))[CO_corr >= CO_constraint + 1e-12]
+        if len(mask) > 0:
+            constraint_ind = mask[-1] + 1
+        else:
+            constraint_ind = len(CO_corr)
     try:
         tau_sec = time[constraint_ind]
         NO_finalcorr = NO_corr[constraint_ind]
@@ -75,12 +80,9 @@ def getNOx(sys_df, CO_constraint = 31.82):
         T_corresponding = 0
     return NO_finalcorr, CO_finalcorr, tau_sec, T_corresponding    
 
-def main():
-    milliseconds = 1e-3;
-    tau_ent_cf = np.array([0.1, 0.2, 1, 2, 3])*milliseconds
-    tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 3.0])*milliseconds    
-    tau_mix = np.array([0.01, 0.05, 0.1, 0.3])*milliseconds
+def main(tau_ent_main = np.array([0.1, 0.2, 1, 2, 3])*1e-3, tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 3.0])*1e-3, tau_mix = np.array([0.01, 0.05, 0.1, 0.3])*1e-3):
 
+    milliseconds = 1e-3;
     NO_list = []
     CO_list = []
     T_list = []
@@ -89,17 +91,17 @@ def main():
     sys_df_list = []
     pasbr_df_list = []
     pasbr_list = []
-    cf_list = []
+    main_list = []
     sec_list = []
     mix_list = []
-
     time_taken_list = []
     avg_particles_list = []
-    for i in range(0, len(tau_ent_cf)):
+
+    for i in range(0, len(tau_ent_main)):
         for j in range(0, len(tau_ent_sec)):
             for k in range(0, len(tau_mix)):
                 t1 = time.time();
-                pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix[k], tau_ent_cf[i], tau_ent_sec[j], tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
+                pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix[k], tau_ent_main[i], tau_ent_sec[j], tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
                 t2 = time.time();
                 sys_df_list.append(sys_df)
                 pasbr_df_list.append(pasbr_df)
@@ -109,16 +111,16 @@ def main():
                 CO_list.append(CO)
                 T_list.append(T_corresponding)
                 tau_sec_required_list.append(tau_sec_required)
-                ent_ratio_list.append(tau_ent_cf[i]/tau_ent_sec[j])
+                ent_ratio_list.append(tau_ent_main[i]/tau_ent_sec[j])
 
-                cf_list.append(tau_ent_cf[i])
+                main_list.append(tau_ent_main[i])
                 sec_list.append(tau_ent_sec[j])
                 mix_list.append(tau_mix[k])
 
                 avg_particles_list.append(sys_df['num_particles'].mean())
                 time_taken_list.append(t2-t1)
     
-    data = np.vstack((cf_list, sec_list, mix_list, ent_ratio_list, NO_list, CO_list, T_list, tau_sec_required_list, avg_particles_list, time_taken_list))
+    data = np.vstack((main_list, sec_list, mix_list, ent_ratio_list, NO_list, CO_list, T_list, tau_sec_required_list, avg_particles_list, time_taken_list))
     df = pd.DataFrame(data=np.transpose(data), columns = ['tau_ent_main', 'tau_ent_sec', 'tau_mix', 'ent_ratio', 'NO', 'CO', 'T', 'tau_sec_required', 'avg_num_particles', 'time_taken'])
     df.to_csv("finite_study.csv");
     dataFrame_to_pyarrow(df, "finite_study.pickle")
@@ -138,9 +140,65 @@ def test():
     df = pd.DataFrame(columns=['tau_mix', 'tau_ent_main', 'tau_ent_sec', 'ent_ratio', 'NO', 'CO', 'tau_sec_required', 'T'], data=np.hstack([tau_mix, tau_ent_main, tau_ent_sec, ent_ratio, NO, CO, tau_sec_required, T_corresponding]))
     df.to_csv("limited_everything_test.csv")
 
+def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
+    filename = out_dir + f"tauMix_{tau_mix:.2f}-tauEntMain_{tau_ent_main:.2f}-tauEntSec_{tau_ent_sec:.2f}"
+
+    NO_list = []
+    CO_list = []
+    T_list = []
+    tau_sec_required_list = []
+    ent_ratio_list = []
+    sys_df_list = []
+    pasbr_df_list = []
+    pasbr_list = []
+    main_list = []
+    sec_list = []
+    mix_list = []
+    time_taken_list = []
+    avg_particles_list = []
+
+    t1 = time.time();
+    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
+    t2 = time.time();
+    sys_df_list.append(sys_df)
+    pasbr_df_list.append(pasbr_df)
+    pasbr_list.append(pasbr)
+    NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
+    NO_list.append(NO)
+    CO_list.append(CO)
+    T_list.append(T_corresponding)
+    tau_sec_required_list.append(tau_sec_required)
+    ent_ratio_list.append(tau_ent_main/tau_ent_sec)
+
+    main_list.append(tau_ent_main)
+    sec_list.append(tau_ent_sec)
+    mix_list.append(tau_mix)
+
+    avg_particles_list.append(sys_df['num_particles'].mean())
+    time_taken_list.append((t2-t1)/60)
+    
+    data = np.vstack((main_list, sec_list, mix_list, ent_ratio_list, NO_list, CO_list, T_list, tau_sec_required_list, avg_particles_list, time_taken_list))
+    df = pd.DataFrame(data=np.transpose(data), columns = ['tau_ent_main', 'tau_ent_sec', 'tau_mix', 'ent_ratio', 'NO', 'CO', 'T', 'tau_sec_required', 'avg_num_particles', 'time_taken (minutes)'])
+    df.to_csv(filename + ".csv");
+    dataFrame_to_pyarrow(df, filename + ".pickle")
+
+
 if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("tau_mix", type=float)
+    parser.add_argument("tau_ent_main", type=float)
+    parser.add_argument("tau_ent_sec", type = float)
+    parser.add_argument("out_dir", type = str)
+    args = parser.parse_args()
+    tau_mix=args.tau_mix
+    tau_ent_main=args.tau_ent_main
+    tau_ent_sec=args.tau_ent_sec
+    out_dir=args.out_dir
+    # out_dir = "/home/edwin/Documents/python_test//"
+    if not out_dir[-1] == "/":
+        out_dir += "/"
     t1 = time.time();    
-    main()
+    one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir)
     t2 = time.time()
     print(f"Time taken = {(t2-t1)/60:.2f} minutes")
 
