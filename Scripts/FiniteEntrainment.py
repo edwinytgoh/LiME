@@ -9,61 +9,67 @@ def COLimitInd(COHistory, constraint):
 
 def runCase(tau_ent_cf, tau_ent_sec, toPickle = False):
     milliseconds = 0.001
-    P = 25*ct.one_atm
-    CO_constraint = 31.82 # corrected ppm
-    [mfm, mam, mfs, mas] = solvePhi_airSplit(0.635, 0.3719, 100, 1)
-    main_mass = mfm + mam
-    jet_mass = mfs + mas
-    [vit_reactor, main_burner_DF] = runMainBurner(0.3719, 19.842*milliseconds)
+    totalTime = 5.0*milliseconds
+    t = np.arange(0, totalTime, 0.001*milliseconds)
+    filename = 'infmix_cf_{0:0.2f}ms_sec_{1:0.2f}ms.pickle'.format(tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
+    if os.path.isfile(filename):
+        timetraceDF = pyarrow_to_dataFrame(filename)
+    else:
+        P = 25*ct.one_atm
+        CO_constraint = 31.82 # corrected ppm
+        [mfm, mam, mfs, mas] = solvePhi_airSplit(0.635, 0.3719, 100, 1)
+        main_mass = mfm + mam
+        jet_mass = mfs + mas
+        [vit_reactor, main_burner_DF] = runMainBurner(0.3719, 19.842*milliseconds)
 
-    secondary_gas = ct.Solution('gri30.xml')
-    secondary_gas.TPX = 300, P, {'CH4':1}
-    sec_reactor = ct.ConstPressureReactor(secondary_gas)
+        secondary_gas = ct.Solution('gri30.xml')
+        secondary_gas.TPX = 300, P, {'CH4':1}
+        sec_reactor = ct.ConstPressureReactor(secondary_gas)
 
-    interface_gas = mix([vit_reactor.thermo, secondary_gas], [main_mass, jet_mass])
-    initial_secReactor_mass = 1e-6 # kg
-    interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_secReactor_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
+        interface_gas = mix([vit_reactor.thermo, secondary_gas], [main_mass, jet_mass])
+        initial_secReactor_mass = 1e-6 # kg
+        interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_secReactor_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
 
-    mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
-    mdot_vit = main_mass/tau_ent_cf
-    mfc_vit.set_mass_flow_rate(lambda t: mdot_vit if t <= tau_ent_cf else 0)
+        mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
+        mdot_vit = main_mass/tau_ent_cf
+        mfc_vit.set_mass_flow_rate(lambda t: mdot_vit if t <= tau_ent_cf else 0)
 
-    mfc_sec = ct.MassFlowController(sec_reactor, interface_reactor)
-    mdot_sec = jet_mass/tau_ent_sec
-    mfc_sec.set_mass_flow_rate(lambda t: mdot_sec if t <= tau_ent_sec else 0)
+        mfc_sec = ct.MassFlowController(sec_reactor, interface_reactor)
+        mdot_sec = jet_mass/tau_ent_sec
+        mfc_sec.set_mass_flow_rate(lambda t: mdot_sec if t <= tau_ent_sec else 0)
 
-    reactorNet = ct.ReactorNet([vit_reactor, sec_reactor, interface_reactor])
-    mean_gas = ct.Solution('gri30.xml')
-    columnNames = ['time', 'T', 'NOppmvd', 'COppmvd']
-    dataArray = np.array([None] * len(t) * len(columnNames)).reshape(len(t), len(columnNames))
-    for i in range(len(t)):
-        tnow = t[i]
-        reactorNet.advance(tnow)
-        # Get the number of moles in each reactor since we're working with mole fractions
-        mass_vit = main_mass - mdot_vit*min(tnow, tau_ent_cf)
-        mass_sec = jet_mass - mdot_sec*min(tnow, tau_ent_sec)
-        mass_int = main_mass - mass_vit + jet_mass - mass_sec
-        massFrac = ((interface_reactor.thermo.Y * mass_int + vit_reactor.thermo.Y * mass_vit + sec_reactor.thermo.Y * mass_sec) /
-                    (mass_int + mass_vit + mass_sec))
-        enthalpy = ((interface_reactor.thermo.enthalpy_mass * mass_int + vit_reactor.thermo.enthalpy_mass * mass_vit + sec_reactor.thermo.enthalpy_mass * mass_sec) / 
-                    (mass_int + mass_vit + mass_sec))
-        mean_gas.HPY = enthalpy, 25*ct.one_atm, massFrac
+        reactorNet = ct.ReactorNet([vit_reactor, sec_reactor, interface_reactor])
+        mean_gas = ct.Solution('gri30.xml')
+        columnNames = ['time', 'T', 'NOppmvd', 'COppmvd']
+        dataArray = np.array([None] * len(t) * len(columnNames)).reshape(len(t), len(columnNames))
+        for i in range(len(t)):
+            tnow = t[i]
+            reactorNet.advance(tnow)
+            # Get the number of moles in each reactor since we're working with mole fractions
+            mass_vit = main_mass - mdot_vit*min(tnow, tau_ent_cf)
+            mass_sec = jet_mass - mdot_sec*min(tnow, tau_ent_sec)
+            mass_int = main_mass - mass_vit + jet_mass - mass_sec
+            massFrac = ((interface_reactor.thermo.Y * mass_int + vit_reactor.thermo.Y * mass_vit + sec_reactor.thermo.Y * mass_sec) /
+                        (mass_int + mass_vit + mass_sec))
+            enthalpy = ((interface_reactor.thermo.enthalpy_mass * mass_int + vit_reactor.thermo.enthalpy_mass * mass_vit + sec_reactor.thermo.enthalpy_mass * mass_sec) / 
+                        (mass_int + mass_vit + mass_sec))
+            mean_gas.HPY = enthalpy, 25*ct.one_atm, massFrac
 
-        species_NOCO = mean_gas['NO', 'CO'].X
-        species_O2 = mean_gas['O2'].X
-        species_H2O = mean_gas['H2O'].X
-        NOCOppmvd = correctNOx(species_NOCO, species_H2O, species_O2)
-        dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1]]) 
+            species_NOCO = mean_gas['NO', 'CO'].X
+            species_O2 = mean_gas['O2'].X
+            species_H2O = mean_gas['H2O'].X
+            NOCOppmvd = correctNOx(species_NOCO, species_H2O, species_O2)
+            dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1]]) 
 
-    timetraceDF = pd.DataFrame(data=dataArray, columns=columnNames)
-    timetraceDF.set_index = 'time'
+        timetraceDF = pd.DataFrame(data=dataArray, columns=columnNames)
+        timetraceDF.set_index = 'time'
         if toPickle:
             # Pickling data if desired
             dataFrame_to_pyarrow(timetraceDF, filename)
 
     NO_corr = timetraceDF['NOppmvd']
     CO_corr = timetraceDF['COppmvd']
-    constraint_ind = COLimitInd(CO_corr, 32)
+    constraint_ind = COLimitInd(CO_corr, CO_constraint)
 
     tau_sec = t[constraint_ind]
     NO_finalcorr = NO_corr[constraint_ind]
@@ -73,7 +79,7 @@ def runCase(tau_ent_cf, tau_ent_sec, toPickle = False):
 # Defining run cases here
 def main():
     milliseconds = 1e-3
-    tau_ent_cf = np.array([0.1, 0.2, 1, 2, 3])*milliseconds
+    tau_ent_cf = np.array([0.1, 0.2, 0.5, 1, 2, 3])*milliseconds
     tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 3.0])*milliseconds
     
     NOs = np.zeros((len(tau_ent_cf), len(tau_ent_sec)))
