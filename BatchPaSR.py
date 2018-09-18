@@ -250,6 +250,7 @@ class Particle(object):
 
         """
         if isinstance(other, Particle):
+            # TODO: CHECK THIS!!!!
             h = (self.mass*self.state[0] + other.mass*other.state[0])/(self.mass + other.mass)
             Y = (self.mass*self.state[1:] + other.mass*other.state[1:])/(self.mass + other.mass)
             self.mass += other.mass
@@ -392,14 +393,14 @@ class PaSBR(object):
         self.N_MAX = N_MAX
         self.dt = dt # note: make sure dt is smaller than tau_mix!!! 
         self.ParticleFlowController = None
-        self.time = 0
+        self.time = 0.0
         self.timenext = 10*dt   # Next point in time to try and coalesce particles
-        self.mass = 0
-        self.state = 0
+        self.mass = 0.0
+        self.state = 0.0
         self.N = len(self.particle_list)
         self.mean_gas = ct.Solution(Particle.gas_template.name + ".xml")
         self.mean_gas.name = "BatchPaSR Mean Gas"
-        self.P = 0
+        self.P = 0.0
         self.timeHistory_list = []
         if len(particle_list) > 0:
             self.P = particle_list[0].P # NOTE: Assume all particles have same temp
@@ -457,7 +458,7 @@ class PaSBR(object):
             [p.react(self.dt) for p in self.particle_list]
 
         # Optional coalescing of particles for performance
-        if coalesce and self.time >= self.timenext:
+        if coalesce:
             self.gobble()
 
         self.time += self.dt        
@@ -472,16 +473,22 @@ class PaSBR(object):
             p1 = self.particle_list[p1_ind]
             # loop through rest of the particles in the list to gobble if possible
             particles_to_delete = []
-            for i in range(1, len(self.particle_list)):
+            for i in range(p1_ind + 1, len(self.particle_list)):
                 p2 = self.particle_list[i]
                 if self._canCombine(p1,p2):
-                    p1 += p2
+                    # p1 += p2 # this does not work; p1 is an entirely new object
+                    self.particle_list[p1_ind] += p2
                     particles_to_delete.append(i)
-
-            for ind in particles_to_delete:
+            particles_to_delete = np.array(particles_to_delete)
+            # do two loops because we don't want to affect the first loop
+            # edwin note: can do one loop if the first loop is a while loop, i.e. while p2_ind < len(self.particle_list), and p2_ind doesn't change if particles_to_delete contains p2_ind, because the next p2 will be at the same position in the new particle_list
+            # there's probably an algorithm for this in an algorithms textbook...
+            for i in range(0,len(particles_to_delete)):
+                ind = particles_to_delete[i]
                 if ind < len(self.particle_list):
                     del self.particle_list[ind] # delete particles 
-            
+                    particles_to_delete -= 1 # the list is getting shorter, so adjust the index of particles to be deleted accordingly
+            self.updateState() # WE DIDN'T HAVE THIS BEFORE, SO THE BATCHPASR DIDN'T KNOW TO UPDATE IT'S MASS/STATE
             p1_ind += 1
 
         
@@ -640,7 +647,7 @@ class ParticleFlowController(object):
 
     def canEntrain(self, t):
         # Check if we can even entrain at this time
-        return (self.mass > 0) and (self.nextstep <= t)
+        return (self.mass > 0) and (self.nextstep <= t) # EDWIN COMMENT: Is nextstep <= t necessary?
         
     def entrain(self, t):
         # Will add a particle to the reactor if entrainment is possible
