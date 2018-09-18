@@ -109,6 +109,7 @@ def main(tau_ent_main = np.array([0.1, 0.2, 1, 2, 3])*1e-3, tau_ent_sec = np.arr
                 NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
                 NO_list.append(NO)
                 CO_list.append(CO)
+                pdb.set_trace()
                 T_list.append(T_corresponding)
                 tau_sec_required_list.append(tau_sec_required)
                 ent_ratio_list.append(tau_ent_main[i]/tau_ent_sec[j])
@@ -156,7 +157,9 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
     mix_list = []
     time_taken_list = []
     avg_particles_list = []
-
+    tau_mix *= 1e-3
+    tau_ent_main *= 1e-3
+    tau_ent_sec *= 1e-3
     t1 = time.time();
     pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
     t2 = time.time();
