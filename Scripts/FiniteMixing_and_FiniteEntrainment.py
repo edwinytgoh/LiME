@@ -146,7 +146,8 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
     if not out_dir[-1] == "/":
         out_dir += "/"    
     filename = f"tauMix_{tau_mix:.3f}-tauEntMain_{tau_ent_main:.3f}-tauEntSec_{tau_ent_sec:.3f}"
-
+    if os.path.isfile(out_dir + filename + ".csv"):
+        return
     tau_mix *= 1e-3
     tau_ent_main *= 1e-3
     tau_ent_sec *= 1e-3
@@ -191,7 +192,7 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
     df = pd.DataFrame(data=np.transpose(data), columns = ['tau_ent_main', 'tau_ent_sec', 'tau_mix', 'ent_ratio', 'NO', 'CO', 'T', 'tau_sec_required', 'avg_num_particles', 'time_taken (minutes)'])
     df.to_csv(out_dir + filename + ".csv");
     sys_df.to_csv(out_dir + "sys_df_" + filename + ".csv")
-    pasbr_df.to_csv(out_dir + "pasbr_df_" + filename + ".csv")    
+    #pasbr_df.to_csv(out_dir + "pasbr_df_" + filename + ".csv")    
     dataFrame_to_pyarrow(df, out_dir + filename + ".pickle")
     dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
     dataFrame_to_pyarrow(pasbr_df, out_dir + "pasbr_df_" + filename + ".pickle")
