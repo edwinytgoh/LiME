@@ -65,11 +65,11 @@ class Particle(object):
         self.mech = mech
         self.P = state[1]
         Particle.gas_template.TPX = [state[0], state[1], state[2:]]
-        self.column_names = ['age', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
+        self.column_names = ['age', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.mass = particle_mass
         self.age = 0
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
-        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
+        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
         self.timeHistory_array = None
         self.chemistry_enabled = chemistry
     
@@ -331,15 +331,15 @@ class Particle(object):
 
         """
         Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
+        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
         reac = ct.ConstPressureReactor(Particle.gas_template,
             volume= self.mass/Particle.gas_template.density)
         reac.chemistry_enabled = self.chemistry_enabled
         netw = ct.ReactorNet([reac])
         netw.advance(dt)
         self.age += dt
-        #         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas.X.tolist()]        
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
+        #         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas.X.tolist()]        
+        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
 
     def get_timeHistory(self, dataFrame=False):
@@ -388,7 +388,7 @@ class PaSBR(object):
         """ 
         if Particle.gas_template == None:
             Particle.gas_template = ct.Solution("gri30.xml")
-        self.column_names = ['age', 'mass', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
+        self.column_names = ['age', 'mass', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.particle_list = particle_list
         self.N_MAX = N_MAX
         self.dt = dt # note: make sure dt is smaller than tau_mix!!! 
@@ -406,7 +406,7 @@ class PaSBR(object):
             self.P = particle_list[0].P # NOTE: Assume all particles have same temp
             self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
             self.updateState()
-            self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
+            self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass, self.mean_gas.get_equivalence_ratio()] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
         # self.chemistry_enabled = chemistry
 
     def __call__(self):
@@ -433,7 +433,7 @@ class PaSBR(object):
         self.mean_gas.HPY = self.state[0], self.mean_gas.P, self.state[1:]
         assert all([round(particle.P) == round(self.P) for particle in self.particle_list]), "BatchPaSR does not support particles with different pressures (yet)"
         assert self.N <= self.N_MAX , f"N ({self.N}) > N_MAX ({self.N_MAX}); too many particles"
-        self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
+        self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass, self.mean_gas.get_equivalence_ratio()] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
         
         
     def insert(self, particle):

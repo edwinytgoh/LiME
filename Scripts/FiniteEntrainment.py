@@ -40,7 +40,7 @@ def runCase(tau_ent_cf, tau_ent_sec, toPickle = False):
 
         reactorNet = ct.ReactorNet([vit_reactor, sec_reactor, interface_reactor])
         mean_gas = ct.Solution('gri30.xml')
-        columnNames = ['time', 'T', 'NOppmvd', 'COppmvd']
+        columnNames = ['time', 'T', 'NOppmvd', 'COppmvd', 'phi_global']
         dataArray = np.array([None] * len(t) * len(columnNames)).reshape(len(t), len(columnNames))
         for i in range(len(t)):
             tnow = t[i]
@@ -59,7 +59,7 @@ def runCase(tau_ent_cf, tau_ent_sec, toPickle = False):
             species_O2 = mean_gas['O2'].X
             species_H2O = mean_gas['H2O'].X
             NOCOppmvd = correctNOx(species_NOCO, species_H2O, species_O2)
-            dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1]]) 
+            dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1], get_equivalence_ratio(mean_gas)])# mean_gas.get_equivalence_ratio()]) 
 
         timetraceDF = pd.DataFrame(data=dataArray, columns=columnNames)
         timetraceDF.set_index = 'time'
@@ -75,6 +75,31 @@ def runCase(tau_ent_cf, tau_ent_sec, toPickle = False):
     NO_finalcorr = NO_corr[constraint_ind]
     CO_finalcorr = CO_corr[constraint_ind]
     return tau_sec, NO_finalcorr, CO_finalcorr
+
+# Custom Equivalence Ratio test
+def get_equivalence_ratio(gas, oxidizers = [], ignore = []):
+    if not oxidizers:  # Default behavior, find all possible oxidizers
+        oxidizers = [s.name for s in gas.species()] # if
+                    # all(y not in s.composition for y in ['C', 'H', 'S'])]
+        alpha = 0
+        mol_O = 0
+        for k, s in enumerate(gas.species()):
+            if s.name in ignore:
+                continue
+            else: # elif s.name in oxidizers:
+                mol_O += s.composition.get('O', 0) * gas.X[k]
+            # else:
+                nC = s.composition.get('C', 0)
+                nH = s.composition.get('H', 0)
+                # nO = s.composition.get('O', 0)
+                nS = s.composition.get('S', 0)
+
+                alpha += (2*nC + nH/2 + 2*nS) * gas.X[k]
+
+        if mol_O == 0:
+            return float('inf')
+        else:
+            return alpha / mol_O
 
 # Defining run cases here
 def main():
