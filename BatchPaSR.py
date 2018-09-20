@@ -362,15 +362,40 @@ class Particle(object):
         
         return self.timeHistory_array
 
-    def __getstate__(self):
-        # how to get the state data out of a Particle instance
-        state = self.__dict__.copy()
-        return state
+    # Custom Equivalence Ratio test
+    def get_global_equivalence_ratio(self, oxidizers = [], ignore = []):
+        Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
+        if not oxidizers:  # Default behavior, find all possible oxidizers
+            oxidizers = [s.name for s in Particle.gas_template.species()] # if
+                        # all(y not in s.composition for y in ['C', 'H', 'S'])]
+            alpha = 0
+            mol_O = 0
+            for k, s in enumerate(Particle.gas_template.species()):
+                if s.name in ignore:
+                    continue
+                else: # elif s.name in oxidizers:
+                    mol_O += s.composition.get('O', 0) * Particle.gas_template.X[k]
+                # else:
+                    nC = s.composition.get('C', 0)
+                    nH = s.composition.get('H', 0)
+                    # nO = s.composition.get('O', 0)
+                    nS = s.composition.get('S', 0)
 
-    def __setstate__(self, state):
-        # rebuild a Particle instance from state
-        self.__dict__.update(state)
+                    alpha += (2*nC + nH/2 + 2*nS) * Particle.gas_template.X[k]
 
+            if mol_O == 0:
+                return float('inf')
+            else:
+                return alpha / mol_O
+
+        def __getstate__(self):
+            # how to get the state data out of a Particle instance
+            state = self.__dict__.copy()
+            return state
+
+        def __setstate__(self, state):
+            # rebuild a Particle instance from state
+            self.__dict__.update(state)
 
 class PaSBR(object):
     def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, coalesce = True):
