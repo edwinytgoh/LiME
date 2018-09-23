@@ -2,7 +2,7 @@ import cantera as ct
 import numpy as np 
 import pandas as pd
 import time 
-import matplotlib.pylab as plt 
+import matplotlib.pyplot as plt 
 import pdb 
 from argparse import ArgumentParser
 import os.path
@@ -52,6 +52,8 @@ class Particle(object):
         
         particle_mass : `float`
             Particle mass
+
+            
         
         Returns
         -------
@@ -63,11 +65,11 @@ class Particle(object):
         self.mech = mech
         self.P = state[1]
         Particle.gas_template.TPX = [state[0], state[1], state[2:]]
-        self.column_names = ['age', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
+        self.column_names = ['age', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.mass = particle_mass
         self.age = 0
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
-        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
+        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
         self.timeHistory_array = None
         self.chemistry_enabled = chemistry
     
@@ -99,7 +101,7 @@ class Particle(object):
             self.state[1:] = Y
         else:
             return self.state
-
+   
     def __add__(self, other):
         """Add values to state of particle without changing the state of either particle.
 
@@ -248,8 +250,10 @@ class Particle(object):
 
         """
         if isinstance(other, Particle):
-            h = self.state[0] + other.state[0]
-            Y = self.state[1:] + other.state[1:]
+            # TODO: CHECK THIS!!!!
+            h = (self.mass*self.state[0] + other.mass*other.state[0])/(self.mass + other.mass)
+            Y = (self.mass*self.state[1:] + other.mass*other.state[1:])/(self.mass + other.mass)
+            self.mass += other.mass
         elif isinstance(other, np.ndarray):
             assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))
             h = self.state[0] + other[0]
@@ -313,7 +317,6 @@ class Particle(object):
         else:
             return NotImplemented
         
-
     def react(self, dt):
         """Perform reaction timestep by advancing network.
 
@@ -328,15 +331,15 @@ class Particle(object):
 
         """
         Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
+        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
         reac = ct.ConstPressureReactor(Particle.gas_template,
             volume= self.mass/Particle.gas_template.density)
         reac.chemistry_enabled = self.chemistry_enabled
         netw = ct.ReactorNet([reac])
         netw.advance(dt)
         self.age += dt
-        #         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas.X.tolist()]        
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
+        #         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas.X.tolist()]        
+        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
 
     def get_timeHistory(self, dataFrame=False):
@@ -359,18 +362,43 @@ class Particle(object):
         
         return self.timeHistory_array
 
-    def __getstate__(self):
-        # how to get the state data out of a Particle instance
-        state = self.__dict__.copy()
-        return state
+    # Custom Equivalence Ratio test
+    def get_global_equivalence_ratio(self, oxidizers = [], ignore = []):
+        Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
+        if not oxidizers:  # Default behavior, find all possible oxidizers
+            oxidizers = [s.name for s in Particle.gas_template.species()] # if
+                        # all(y not in s.composition for y in ['C', 'H', 'S'])]
+            alpha = 0
+            mol_O = 0
+            for k, s in enumerate(Particle.gas_template.species()):
+                if s.name in ignore:
+                    continue
+                else: # elif s.name in oxidizers:
+                    mol_O += s.composition.get('O', 0) * Particle.gas_template.X[k]
+                # else:
+                    nC = s.composition.get('C', 0)
+                    nH = s.composition.get('H', 0)
+                    # nO = s.composition.get('O', 0)
+                    nS = s.composition.get('S', 0)
 
-    def __setstate__(self, state):
-        # rebuild a Particle instance from state
-        self.__dict__.update(state)
+                    alpha += (2*nC + nH/2 + 2*nS) * Particle.gas_template.X[k]
 
+            if mol_O == 0:
+                return float('inf')
+            else:
+                return alpha / mol_O
+
+        def __getstate__(self):
+            # how to get the state data out of a Particle instance
+            state = self.__dict__.copy()
+            return state
+
+        def __setstate__(self, state):
+            # rebuild a Particle instance from state
+            self.__dict__.update(state)
 
 class PaSBR(object):
-    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, chemistry = True):
+    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, coalesce = True):
         """Initialize BatchPaSR from a list of Particles
         
         Parameters
@@ -383,27 +411,28 @@ class PaSBR(object):
         None 
         
         """ 
-        
-        self.column_names = ['age', 'mass', 'T', 'MW', 'h'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
-        self.P = particle_list[0].P # NOTE: Assume all particles have same temp
+        if Particle.gas_template == None:
+            Particle.gas_template = ct.Solution("gri30.xml")
+        self.column_names = ['age', 'mass', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.particle_list = particle_list
         self.N_MAX = N_MAX
-        self.dt = dt
+        self.dt = dt # note: make sure dt is smaller than tau_mix!!! 
         self.ParticleFlowController = None
-        self.time = 0
-        self.mass = 0
-        self.state = None
+        self.time = 0.0
+        self.timenext = 10*dt   # Next point in time to try and coalesce particles
+        self.mass = 0.0
+        self.state = 0.0
         self.N = len(self.particle_list)
         self.mean_gas = ct.Solution(Particle.gas_template.name + ".xml")
         self.mean_gas.name = "BatchPaSR Mean Gas"
-        self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
-        self.updateState()
-        self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
-        self.massList = [self.mass]
-        self.inactive_particles = []
-        self.entrain_timer = None
-        self.entrainInd = 0
-        self.chemistry_enabled = chemistry
+        self.P = 0.0
+        self.timeHistory_list = []
+        if len(particle_list) > 0:
+            self.P = particle_list[0].P # NOTE: Assume all particles have same temp
+            self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
+            self.updateState()
+            self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass, self.mean_gas.get_equivalence_ratio()] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
+        # self.chemistry_enabled = chemistry
 
     def __call__(self):
         self.mean_gas()
@@ -420,12 +449,16 @@ class PaSBR(object):
         -------
         None
         """
+        if self.P == 0:
+            self.P = self.particle_list[0].P
+            self.mean_gas.TPX = self.mean_gas.T, self.P, self.mean_gas.X
         self.mass = sum([p.mass for p in self.particle_list]) # Note: can remove this if we're not updating particle_list if we don't usually update particle_list before we call this method
         self.N = len(self.particle_list)  
         self.state = sum([p.mass * p.state for p in self.particle_list])/self.mass # use p() or p.state?
         self.mean_gas.HPY = self.state[0], self.mean_gas.P, self.state[1:]
         assert all([round(particle.P) == round(self.P) for particle in self.particle_list]), "BatchPaSR does not support particles with different pressures (yet)"
-        assert self.N <= self.N_MAX , "N > N_MAX; too many particles"
+        assert self.N <= self.N_MAX , f"N ({self.N}) > N_MAX ({self.N_MAX}); too many particles"
+        self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass, self.mean_gas.get_equivalence_ratio()] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
         
         
     def insert(self, particle):
@@ -438,7 +471,7 @@ class PaSBR(object):
         particle.react(dt)
         return particle.__getstate__()
         
-    def react(self, parallel=False):
+    def react(self, parallel=False, coalesce = True):
         if parallel:
             pool = multiprocessing.Pool(processes=4)
             jobList = [(p, self.dt) for p in self.particle_list]
@@ -448,21 +481,81 @@ class PaSBR(object):
             [self.particle_list[i].__setstate__(states[i]) for i in range(0, len(self.particle_list))]
         else:
             [p.react(self.dt) for p in self.particle_list]
-        self.updateState()
+
+        # Optional coalescing of particles for performance
+        if coalesce:
+            self.gobble()
+
         self.time += self.dt        
-        self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
+        self.updateState()
     
+    def gobble(self):
+        self.timenext += 50*self.dt
+        tol = 1e-12
+        ind = 1
+        p1_ind = 0
+        while p1_ind < len(self.particle_list):
+            p1 = self.particle_list[p1_ind]
+            # loop through rest of the particles in the list to gobble if possible
+            particles_to_delete = []
+            for i in range(p1_ind + 1, len(self.particle_list)):
+                p2 = self.particle_list[i]
+                if self._canCombine(p1,p2):
+                    # p1 += p2 # this does not work; p1 is an entirely new object
+                    self.particle_list[p1_ind] += p2
+                    particles_to_delete.append(i)
+            particles_to_delete = np.array(particles_to_delete)
+            # do two loops because we don't want to affect the first loop
+            # edwin note: can do one loop if the first loop is a while loop, i.e. while p2_ind < len(self.particle_list), and p2_ind doesn't change if particles_to_delete contains p2_ind, because the next p2 will be at the same position in the new particle_list
+            # there's probably an algorithm for this in an algorithms textbook...
+            for i in range(0,len(particles_to_delete)):
+                ind = particles_to_delete[i]
+                if ind < len(self.particle_list):
+                    del self.particle_list[ind] # delete particles 
+                    particles_to_delete -= 1 # the list is getting shorter, so adjust the index of particles to be deleted accordingly
+            self.updateState() # WE DIDN'T HAVE THIS BEFORE, SO THE BATCHPASR DIDN'T KNOW TO UPDATE IT'S MASS/STATE
+            p1_ind += 1
+
+        
+        # while ind < len(self.particle_list):
+        #     p0 = self.particle_list[0]
+        #     p = self.particle_list[ind]
+        #     diffH = p.state[0] - p0.state[0]
+        #     diffY = p.state[1:] - p0.state[1:]
+        #     if ((diffH/(p0.state[0] + np.finfo(np.float64).eps))**2 < tol and
+        #         np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol):
+        #         p0 += p # combine particles and update p0
+        #         del self.particle_list[ind]
+        #     else:
+        #         ind += 1        
+    
+    def _canCombine(self, p1, p2, tol=1e-8):
+        H_1 = p1.state[0]
+        Y_1 = p1.state[1:]
+        diffH = p2.state[0] - p1.state[0]
+        diffY = p2.state[1:] - p1.state[1:]
+        machine_epsilon = np.finfo(np.float64).eps
+        diffH_percent = (diffH/(H_1 + machine_epsilon))**2
+        diffY_percent = np.linalg.norm(np.divide(diffY, Y_1 + machine_epsilon))
+        diffH_is_small = diffH_percent < tol
+        diffY_is_small = diffY_percent < tol        
+        # diffY_is_small = np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol
+        if (diffH_is_small and diffY_is_small):
+            print(f"We are combining particles! diffH_norm = {diffH_percent:.5E}, diffY_percent = {diffY_percent:.5E}")		
+        
+        return ( diffH_is_small and diffY_is_small )
+
 #     def iem(cls, paticle_list)
     def _iem(self, particle_list, k):
         k_avg = k*self.state
         for p in particle_list:
             p.state = p * (k + 1) - k_avg
  
-    def mix(self, tau_mix):
+    def mix(self, tau_mix): # note: make sure dt < tau_mix!
         # Constant k:
         k = -self.dt/tau_mix # note: actually, k = -0.5*C_phi*omega*dt, but since C_phi is usually 2, i canceled it out.
         k_avg = k*self.state
-        [p(p * (k + 1) - k_avg) for p in self.particle_list]
+        [p(p * (k + 1) - k_avg) for p in self.particle_list] # setting p.state_new = p.state_old + k*p.state_old - k*avg_state
         self.updateState()
     
     def prepEntrainment(self, added_gas, total_mass_added, tau_ent, numParticles=10, method='constant', time_interval = None):
@@ -493,7 +586,7 @@ class PaSBR(object):
         
         """ 
                 
-        # Todo: add multiple entrainment menthods here (defaulting to constant for now)
+        # Todo: add multiple entrainment methods here (defaulting to constant for now)
         if time_interval is None:
             self.entrain_timer = np.arange(0, tau_ent, tau_ent/numParticles)
         else:
@@ -579,11 +672,12 @@ class ParticleFlowController(object):
         self.mass = totalmass
         self.dt = timestep
         self.mdotexp = method
-        self.nextstep = timestep/2   # Which time to add the next particle (using trapezoidal sum)
+        # self.nextstep = timestep/2   # Which time to add the next particle (using trapezoidal sum)
+        self.nextstep = 0
 
     def canEntrain(self, t):
         # Check if we can even entrain at this time
-        return (self.mass > 0) and (self.nextstep <= t)
+        return (self.mass > 0) and (self.nextstep <= t) # EDWIN COMMENT: Is nextstep <= t necessary?
         
     def entrain(self, t):
         # Will add a particle to the reactor if entrainment is possible
@@ -596,10 +690,21 @@ class ParticleFlowController(object):
                 mdot1 = eval(self.mdotexp.replace('t', str(self.nextstep - self.dt/2)))
                 mdot2 = eval(self.mdotexp.replace('t', str(self.nextstep + self.dt/2)))
             self.nextstep += self.dt
-            mass = min(self.mass, (mdot1 + mdot2)/2 * self.dt)
+            entrained_mass =  min(self.mass, (mdot1 + mdot2)/2 * self.dt) # trapezoidal rule; if remaining self.mass < mass to be entrained then entrain self.mass
             # Keep track of remaining mass
-            self.mass -= mass
+            
+            self.mass -= entrained_mass
             self.rn.advance(t)
-            particle = Particle.fromGas(self.gas, particle_mass=mass)
+            particle = Particle.fromGas(self.gas, particle_mass=entrained_mass)
+            # print(f"Entraining particle of mass {entrained_mass:.2f} kg into PaSBR");
+            # pdb.set_trace()
             # Add it into the reactor
             self.bp.insert(particle)
+            return self.mass, particle()
+        else:
+            return self.mass, np.hstack((self.gas.enthalpy_mass, self.gas.Y))
+    
+if __name__ == "__main__":
+    gas = ct.Solution("gri30.xml");
+    p1 = Particle.fromGas(gas);
+    gas()

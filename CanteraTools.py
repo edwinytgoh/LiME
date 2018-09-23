@@ -26,7 +26,7 @@ def runFlame(gas):
     X_CH2O = f.X[CH2O]
     maxIndex = np.arange(0, len(X_CH2O))[X_CH2O == max(X_CH2O)][0];
 #     startingIndex = np.arange(0, len(X_CH2O))[X_CH2O >= X_CH2O[0] + 5][0]
-    startingIndex = maxIndex;
+    startingIndex = maxIndex; 
     #     startingIndex = np.arange(0, len(f.heat_release_rate))[f.heat_release_rate == max(f.heat_release_rate)][0]
     u_avg = np.array(f.u[startingIndex:] + f.u[startingIndex - 1:-1]) * 0.5
     dx = np.array(f.grid[startingIndex:] - f.grid[startingIndex - 1:-1])
@@ -41,7 +41,7 @@ def runFlame(gas):
 
 def getStateAtTime(flame, tList, tRequired, mech='gri30.xml'):
     '''A function that gets the state at a desired point in time of a flame simulation performed using runFlame. 
-        Takes in a flame object, its associated time series, and the desired point in time.
+        Takes in a flame object, its associated time series, and the desired point in time (in seconds).
         Returns a new Cantera gas object with the desired state, and the corresponding index in the flame at which the point was found. 
 
         Example usage: gas, t_ind = getStateAtTime(flame, time, t_req)'''
@@ -135,7 +135,7 @@ def mix(streams, mdots, mech="gri30.xml", P=25*101325):
     
     # Create reactor with CHEMISTRY DISABLED: 
     mixer = ct.ConstPressureReactor(mixerGas) 
-    mixer.chemistry_enabled = False # distable chemistry 
+    mixer.chemistry_enabled = False # disable chemistry 
     
     # For each stream (and given mass flow rate), connect mass flow controller to mixer: 
     mfcs = [ct.MassFlowController(ct.Reservoir(streams[i]), mixer, mdot=mdots[i]) for i in range(0,len(streams))]
@@ -209,6 +209,14 @@ def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="g
     vitiatedProd, flameCutoffIndex, mainBurnerDF = getStateAtTime(mainBurnerDF, flameTime, tau_main)
     vitReactor = ct.ConstPressureReactor(vitiatedProd)
     return vitReactor, mainBurnerDF
+
+def dataFrame_to_pyarrow(df, filename):
+    pq.write_table(pa.Table.from_pandas(df), filename)
+
+def pyarrow_to_dataFrame(filename):
+    table = pq.read_table(filename, nthreads=4)
+    df = table.to_pandas()
+    return df
 
 def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None,T_fuel=300,T_ox=650,P=25, mech="gri30.xml",trace=False):
     P *= ct.one_atm
