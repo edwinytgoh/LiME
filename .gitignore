@@ -5,6 +5,8 @@ __pycache__/
 *.png
 *.csv
 infmix*.pickle
+Scripts/pickles/
+
 # VS Code folder
 .vscode/
 .vscode/settings.json
