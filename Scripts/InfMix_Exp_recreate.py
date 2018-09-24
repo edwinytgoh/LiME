@@ -18,7 +18,7 @@ def runCase(phi_HE, J_ratio, phi_jet, tau_ent_cf = 0.1*1e-3, tau_ent_sec = 0.1*1
     milliseconds = 0.001
     totalTime = 52.0*milliseconds
     t = np.arange(0, totalTime, 0.001*milliseconds)
-    filename = 'pickles/exp_cf_{0:0.2f}ms_sec_{1:0.2f}ms.pickle'.format(tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
+    filename = 'pickles/exp_HE_{0:0.3f}_jet_{1:0.2f}_J_{2:0.2f}.pickle'.format(phi_HE, phi_jet, J_ratio)
     if not os.path.exists('pickles'):
         os.makedirs('pickles')
     
@@ -86,7 +86,7 @@ def runCase(phi_HE, J_ratio, phi_jet, tau_ent_cf = 0.1*1e-3, tau_ent_sec = 0.1*1
             species_O2 = mean_gas['O2'].X
             species_H2O = mean_gas['H2O'].X
             NOCOppmvd = correctNOx(species_NOCO, species_H2O, species_O2)
-            dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1], mean_gas.get_equivalence_ratio()])# mean_gas.get_equivalence_ratio()]) 
+            dataArray[i, :] = np.hstack([tnow, mean_gas.T, NOCOppmvd[0], NOCOppmvd[1], get_global_equivalence_ratio(mean_gas)])# mean_gas.get_equivalence_ratio()]) 
 
         timetraceDF = pd.DataFrame(data=dataArray, columns=columnNames)
         timetraceDF.set_index = 'time'
@@ -100,6 +100,7 @@ def runCase(phi_HE, J_ratio, phi_jet, tau_ent_cf = 0.1*1e-3, tau_ent_sec = 0.1*1
     tau_sec = t[-1]
     NO_finalcorr = NO_corr.iat[-1]
     CO_finalcorr = CO_corr.iat[-1]
+    phi_global = timetraceDF.phi_global.iat[-1]
     return tau_sec, NO_finalcorr, CO_finalcorr, phi_global
 
 # Custom Equivalence Ratio test
@@ -134,15 +135,16 @@ def main():
     tau_ent_sec = 25*milliseconds
     
     J_ratio = np.array([1.4, 2.1, 2.8, 3.6])
-    phi_jet = np.arange(2, 9, 1)
+    phi_jet = np.arange(2, 8.25, 0.25)
 
     NOs = np.zeros((len(phi_jet), len(J_ratio)))
     COs = np.zeros((len(phi_jet), len(J_ratio)))
+    phi_global = np.zeros((len(phi_jet), len(J_ratio)))
     for i in range(len(phi_jet)):
         for j in range(len(J_ratio)):
-            (dummy, NOs[i, j], COs[i, j], phi_global) = runCase(0.625, J_ratio[j], phi_jet[i], tau_ent_cf, tau_ent_sec, toPickle = False)
+            (dummy, NOs[i, j], COs[i, j], phi_global[i, j]) = runCase(0.525, J_ratio[j], phi_jet[i], tau_ent_cf, tau_ent_sec, toPickle = True)
             print('Final Overall 15% O2 Corrected NO concentration: ' + str(NOs[i,j]) + ' ppm')
-            print('Phi_Global of ' + str(phi_global))    
+            print('Phi_Global of ' + str(phi_global[i, j]))    
 
     # Make some plots
     fig1 = plt.figure()
@@ -156,7 +158,21 @@ def main():
     ax1.grid(True)
     handles, labels = ax1.get_legend_handles_labels()
     lgd = ax1.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
-    fig1.savefig('Phi_HE_0.625.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    fig1.savefig('Phi_HE_0.525_NO.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
+    fig2 = plt.figure()
+    ax2 = plt.axes()
+    ax2.set_title('Phi Global over Jet Parameters')
+    plt.xlabel('Jet Equivalence Ratio')
+    plt.ylabel('Phi Global')
+    
+    for i in range(len(J_ratio)):
+        ax2.plot(phi_jet, phi_global[:, i], '*', label='J = ' + str(J_ratio[i]))
+    ax2.grid(True)
+    handles, labels = ax2.get_legend_handles_labels()
+    lgd = ax2.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
+    fig2.savefig('Phi_HE_0.525_phi_globals.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+
     plt.show()
 
 if __name__ == "__main__":
