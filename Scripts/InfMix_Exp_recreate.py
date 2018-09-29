@@ -14,6 +14,49 @@ sec_air.TPX = 440, P, {'O2':0.21, 'N2':0.79}
 def COLimitInd(COHistory, constraint):
     return min(np.arange(len(COHistory))[COHistory > constraint][-1] + 1, len(COHistory)-1)
 
+def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="gri30.xml"): 
+    flameGas = premix(phi_main, P=P, mech=mech, T_fuel=T_fuel, T_ox=T_ox) 
+    filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main)
+    if os.path.isfile(filename):
+            table = pq.read_table(filename, nthreads=5)
+            mainBurnerDF = table.to_pandas()
+            flameTime = mainBurnerDF.index.values
+    else:
+        width = 0.06  # m
+        # Flame object
+        flame = ct.FreeFlame(flameGas, width=width)
+        flame.set_refine_criteria(ratio=2, slope=0.02, curve=0.02)
+        flame.transport_model = 'Multi'
+        flame.solve(loglevel=0, auto=True, refine_grid=True)
+
+        # Convert distance into time:
+        CH2O = flameGas.species_index('CH2O')
+        X_CH2O = flame.X[CH2O]
+        maxIndex = np.arange(0, len(X_CH2O))[X_CH2O == max(X_CH2O)][0]
+        
+        startingIndex = maxIndex; 
+        u_avg = np.array(flame.u[startingIndex:] + flame.u[startingIndex - 1:-1]) * 0.5
+        dx = np.array(flame.grid[startingIndex:] - flame.grid[startingIndex - 1:-1])
+        dt = dx / u_avg
+
+        pre_time = [-999] * (startingIndex-1)  # need to add some padding to the time array to account for dist = 0.0
+        pre_time.extend([0])
+        flameTime = np.hstack((np.array(pre_time), np.cumsum(dt)))
+
+        columnNames = ['x', 'u', 'T', 'n', 'MW'] + ["Y_" + sn for sn in flameGas.species_names] + ["X_" + sn for sn in
+                                                                                    flameGas.species_names]
+        flameData = np.concatenate(
+        [np.array([flame.grid]), np.array([flame.u]), np.array([flame.T]), np.array([[0] * len(flame.T)]), np.array([[0] * len(flame.T)]), flame.Y, flame.X], axis=0)
+        mainBurnerDF = pd.DataFrame(data=flameData.transpose(), index=flameTime, columns=columnNames)
+        mainBurnerDF.index.name = 'Time'
+        mainBurnerDF['P'] = flame.P
+        table = pa.Table.from_pandas(mainBurnerDF)
+        pq.write_table(table, filename)
+
+    vitiatedProd, flameCutoffIndex, mainBurnerDF = getStateAtTime(mainBurnerDF, flameTime, tau_main)
+    vitReactor = ct.ConstPressureReactor(vitiatedProd)
+    return vitReactor, mainBurnerDF
+
 def runCase(phi_HE, J_ratio, phi_jet, tau_ent_cf = 0.1*1e-3, tau_ent_sec = 0.1*1e-3, toPickle = False):
     milliseconds = 0.001
     totalTime = 52.0*milliseconds
@@ -45,11 +88,9 @@ def runCase(phi_HE, J_ratio, phi_jet, tau_ent_cf = 0.1*1e-3, tau_ent_sec = 0.1*1
         mas *= 100/mtot
         mfs *= 100/mtot
 
-        # [mfm, mam, mfs, mas] = solvePhi_airSplit(phi_HE + delta_phi, phi_HE, 100, airsplit)
         main_mass = mfm + mam
         jet_mass = mfs + mas
-        
-        # secondary_gas = ct.Solution('gri30.xml')
+
         # Using mass fractions since we have those
         sec_reactor = ct.ConstPressureReactor(secondary_gas)
 
@@ -142,7 +183,7 @@ def main():
     phi_global = np.zeros((len(phi_jet), len(J_ratio)))
     for i in range(len(phi_jet)):
         for j in range(len(J_ratio)):
-            (dummy, NOs[i, j], COs[i, j], phi_global[i, j]) = runCase(0.525, J_ratio[j], phi_jet[i], tau_ent_cf, tau_ent_sec, toPickle = True)
+            (dummy, NOs[i, j], COs[i, j], phi_global[i, j]) = runCase(0.625, J_ratio[j], phi_jet[i], tau_ent_cf, tau_ent_sec, toPickle = True)
             print('Final Overall 15% O2 Corrected NO concentration: ' + str(NOs[i,j]) + ' ppm')
             print('Phi_Global of ' + str(phi_global[i, j]))    
 
@@ -158,7 +199,7 @@ def main():
     ax1.grid(True)
     handles, labels = ax1.get_legend_handles_labels()
     lgd = ax1.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
-    fig1.savefig('Phi_HE_0.525_NO.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    fig1.savefig('Phi_HE_0.625_NO.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     fig2 = plt.figure()
     ax2 = plt.axes()
@@ -171,7 +212,7 @@ def main():
     ax2.grid(True)
     handles, labels = ax2.get_legend_handles_labels()
     lgd = ax2.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
-    fig2.savefig('Phi_HE_0.525_phi_globals.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    fig2.savefig('Phi_HE_0.625_phi_globals.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     plt.show()
 
