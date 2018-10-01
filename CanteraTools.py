@@ -11,12 +11,12 @@ import multiprocessing
 
 milliseconds = 0.001 # seconds 
 pd.options.mode.chained_assignment = None  # default='warn'
-def runFlame(gas):
+def runFlame(gas, slope=0.01, curve=0.01):
     # Simulation parameters
     width = 0.06  # m
     # Flame object
     f = ct.FreeFlame(gas, width=width)
-    f.set_refine_criteria(ratio=2, slope=0.01, curve=0.01)
+    f.set_refine_criteria(ratio=2, slope=slope, curve=curve)
     f.transport_model = 'Multi'
     f.solve(loglevel=0, auto=True, refine_grid=True)
     
