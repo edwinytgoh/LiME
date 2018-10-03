@@ -147,7 +147,13 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
         out_dir += "/"    
     filename = f"tauMix_{tau_mix:.3f}-tauEntMain_{tau_ent_main:.3f}-tauEntSec_{tau_ent_sec:.3f}"
     if os.path.isfile(out_dir + filename + ".csv"):
+        print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
         return
+    if tau_mix > 0.05:
+        dt = 0.005*milliseconds
+    else:
+        dt=0.001*milliseconds
+
     tau_mix *= 1e-3
     tau_ent_main *= 1e-3
     tau_ent_sec *= 1e-3
