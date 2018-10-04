@@ -531,7 +531,7 @@ class PaSBR(object):
         #     else:
         #         ind += 1        
     
-    def _canCombine(self, p1, p2, tol=1e-8):
+    def _canCombine(self, p1, p2, tol=1e-6):
         H_1 = p1.state[0]
         Y_1 = p1.state[1:]
         diffH = p2.state[0] - p1.state[0]
@@ -643,6 +643,7 @@ class PaSBR(object):
         return self.timeHistory_array   
 
     def get_particleTimeHistory(self, dataFrame=True):
+        [self.particle_timeHistory_list.append(self.particle_list[i].get_timeHistory()) for i in range(0,len(self.particle_list))]
         particle_timeHistory_array = np.vstack(self.particle_timeHistory_list)
         particle_timeHistory_lengths = [len(thl) for thl in self.particle_timeHistory_list]
         if dataFrame == True:

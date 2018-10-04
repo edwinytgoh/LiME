@@ -18,7 +18,7 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
     mdot_main = mass_main/tau_ent_main
     mdot_sec = mass_sec/tau_ent_sec
     t = np.arange(0, tau_sec, dt)
-    print(f"Length of t is {len(t)}")
+    print(f"Length of t is {len(t)}; start = 0; stop = {tau_sec:.5f}; step = {dt:.6f}")
     # Calculate main burner:
     [vit_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main, P=P)    
 
@@ -142,15 +142,16 @@ def test():
     df = pd.DataFrame(columns=['tau_mix', 'tau_ent_main', 'tau_ent_sec', 'ent_ratio', 'NO', 'CO', 'tau_sec_required', 'T'], data=np.hstack([tau_mix, tau_ent_main, tau_ent_sec, ent_ratio, NO, CO, tau_sec_required, T_corresponding]))
     df.to_csv("limited_everything_test.csv")
 
-def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
+def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0):
     if not out_dir[-1] == "/":
         out_dir += "/"    
     filename = f"tauMix_{tau_mix:.3f}-tauEntMain_{tau_ent_main:.3f}-tauEntSec_{tau_ent_sec:.3f}"
     if os.path.isfile(out_dir + filename + ".csv"):
         print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
         return
-    if tau_mix > 0.05:
+    if tau_mix >= 0.05:
         dt = 0.005*milliseconds
+        print(f"dt = {dt/milliseconds:.3f} milliseconds")
     else:
         dt=0.001*milliseconds
 
@@ -177,7 +178,8 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
     pasbr_mass_list = []
 
     t1 = time.time();
-    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
+    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix=tau_mix, tau_ent_main=tau_ent_main, tau_ent_sec=tau_ent_sec, tau_sec=tau_sec*1e-3, dt=dt)
+    # pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec*milliseconds, dt)
     particles_df, particle_timeHistory_lengths = pasbr.get_particleTimeHistory()
     dataFrame_to_pyarrow(particles_df, out_dir + "particle_df_" + filename + ".pickle")
     pd.Series(data=np.array(particle_timeHistory_lengths)).to_csv(out_dir + "particle_lengths_" + filename + ".csv")    
