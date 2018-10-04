@@ -179,7 +179,7 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
     t1 = time.time();
     pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
     particles_df, particle_timeHistory_lengths = pasbr.get_particleTimeHistory()
-    dataFrame_to_pyarrow(pasbr_df, out_dir + "particle_df_" + filename + ".pickle")
+    dataFrame_to_pyarrow(particles_df, out_dir + "particle_df_" + filename + ".pickle")
     pd.Series(data=np.array(particle_timeHistory_lengths)).to_csv(out_dir + "particle_lengths_" + filename + ".csv")    
     t2 = time.time();
     pasbr_list.append(pasbr)

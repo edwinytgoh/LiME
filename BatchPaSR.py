@@ -65,11 +65,11 @@ class Particle(object):
         self.mech = mech
         self.P = state[1]
         Particle.gas_template.TPX = [state[0], state[1], state[2:]]
-        self.column_names = ['age', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
+        self.column_names = ['age', 'T', 'MW', 'h', 'phi', 'mass'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.mass = particle_mass
         self.age = 0
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
-        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
+        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
         self.timeHistory_array = None
         self.chemistry_enabled = chemistry
     
@@ -331,7 +331,7 @@ class Particle(object):
 
         """
         Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
+        # self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
         reac = ct.ConstPressureReactor(Particle.gas_template,
             volume= self.mass/Particle.gas_template.density)
         reac.chemistry_enabled = self.chemistry_enabled
@@ -339,7 +339,7 @@ class Particle(object):
         netw.advance(dt)
         self.age += dt
         #         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas.X.tolist()]        
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
+        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
 
     def get_timeHistory(self, dataFrame=False):
