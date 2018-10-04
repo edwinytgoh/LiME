@@ -1,4 +1,4 @@
 {
     "python.linting.pylintEnabled": false,
-    "python.pythonPath": "C:\\Users\\james\\Anaconda3\\python.exe"
+    "python.pythonPath": "/home/edwin/anaconda3/envs/canteraEnv/bin/python"
 }

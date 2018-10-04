@@ -427,6 +427,7 @@ class PaSBR(object):
         self.mean_gas.name = "BatchPaSR Mean Gas"
         self.P = 0.0
         self.timeHistory_list = []
+        self.particle_timeHistory_list = []
         if len(particle_list) > 0:
             self.P = particle_list[0].P # NOTE: Assume all particles have same temp
             self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
@@ -511,6 +512,7 @@ class PaSBR(object):
             for i in range(0,len(particles_to_delete)):
                 ind = particles_to_delete[i]
                 if ind < len(self.particle_list):
+                    self.particle_timeHistory_list.append(self.particle_list[ind].get_timeHistory())
                     del self.particle_list[ind] # delete particles 
                     particles_to_delete -= 1 # the list is getting shorter, so adjust the index of particles to be deleted accordingly
             self.updateState() # WE DIDN'T HAVE THIS BEFORE, SO THE BATCHPASR DIDN'T KNOW TO UPDATE IT'S MASS/STATE
@@ -638,7 +640,17 @@ class PaSBR(object):
             df.set_index(['age'])
             return df
         
-        return self.timeHistory_array        
+        return self.timeHistory_array   
+
+    def get_particleTimeHistory(self, dataFrame=True):
+        particle_timeHistory_array = np.vstack(self.particle_timeHistory_list)
+        particle_timeHistory_lengths = [len(thl) for thl in self.particle_timeHistory_list]
+        if dataFrame == True:
+            df = pd.DataFrame(columns = self.particle_list[-1].column_names, data=particle_timeHistory_array)
+            # df.set_index(['age'])
+            return df, particle_timeHistory_lengths
+        
+        return particle_timeHistory_array, particle_timeHistory_lengths
 
 class ParticleFlowController(object):
     def __init__(self, reactor, gas, totalmass, timestep, method):
