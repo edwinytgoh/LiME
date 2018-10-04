@@ -215,14 +215,16 @@ if __name__ == "__main__":
     parser.add_argument("tau_ent_main", type=float)
     parser.add_argument("tau_ent_sec", type = float)
     parser.add_argument("out_dir", type = str)
+    parser.add_argument("tau_sec", type=float)
     args = parser.parse_args()
     tau_mix=args.tau_mix
     tau_ent_main=args.tau_ent_main
     tau_ent_sec=args.tau_ent_sec
     out_dir=args.out_dir
+    tau_sec=args.tau_sec
     # out_dir = "/home/edwin/Documents/python_test//"
     t1 = time.time();    
-    one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir)
+    one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec)
     t2 = time.time()
     print(f"Time taken = {(t2-t1)/60:.2f} minutes")
 
