@@ -40,7 +40,7 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
         total_mass = remaining_main_mass + remaining_sec_mass + pasbr.mass
         system_state = (remaining_main_mass * main_state + remaining_sec_mass * sec_state + pasbr.mass * pasbr.state)/total_mass
         mean_gas.HPY = system_state[0], mean_gas.P, system_state[1:]
-        system_timeHistory.append([t_now, total_mass, mean_gas.T, mean_gas.mean_molecular_weight, mean_gas.enthalpy_mass] + mean_gas.Y.tolist() + mean_gas.X.tolist())
+        system_timeHistory.append([t_now, total_mass, mean_gas.T, mean_gas.mean_molecular_weight, mean_gas.enthalpy_mass, mean_gas.get_equivalence_ratio()] + mean_gas.Y.tolist() + mean_gas.X.tolist())
         pasbr.react()
         pasbr.mix(tau_mix = tau_mix)
         num_particles_list.append(len(pasbr.particle_list))
