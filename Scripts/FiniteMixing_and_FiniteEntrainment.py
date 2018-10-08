@@ -150,10 +150,11 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0):
         print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
         return
     if tau_mix >= 0.05:
-        dt = 0.005*milliseconds
+        dt = 0.002*milliseconds
         print(f"dt = {dt/milliseconds:.3f} milliseconds")
     else:
         dt=0.001*milliseconds
+    # dt=0.001*milliseconds
 
     tau_mix *= 1e-3
     tau_ent_main *= 1e-3
@@ -203,7 +204,7 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0):
     data = np.vstack((main_list, sec_list, mix_list, ent_ratio_list, NO_list, CO_list, T_list, tau_sec_required_list, avg_particles_list, time_taken_list))
     df = pd.DataFrame(data=np.transpose(data), columns = ['tau_ent_main', 'tau_ent_sec', 'tau_mix', 'ent_ratio', 'NO', 'CO', 'T', 'tau_sec_required', 'avg_num_particles', 'time_taken (minutes)'])
     df.to_csv(out_dir + filename + ".csv");
-    sys_df.to_csv(out_dir + "sys_df_" + filename + ".csv")
+    # sys_df.to_csv(out_dir + "sys_df_" + filename + ".csv")
     #pasbr_df.to_csv(out_dir + "pasbr_df_" + filename + ".csv")    
     dataFrame_to_pyarrow(df, out_dir + filename + ".pickle")
     dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")

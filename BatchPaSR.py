@@ -654,10 +654,12 @@ class PaSBR(object):
         if dataFrame == True:
             df = pd.DataFrame(columns = self.particle_list[-1].column_names, data=particle_timeHistory_array)
             particle_timeHistory_info_df = pd.DataFrame(columns={'particle_length', 'pasr_time', 'particle_age'}, data=np.vstack(self.particle_timeHistory_info))
+            particle_timeHistory_info_df.set_index('particle_age')
+            # pdb.set_trace()
             particle_end_ind = particle_timeHistory_info_df['particle_length'].cumsum().values - 1
             particle_start_ind = np.hstack([0, particle_timeHistory_info_df['particle_length'].iloc[:-1].cumsum().values])
-            particle_timeHistory_info_df['particle_end_ind'] = pd.Series(particle_end_ind, index=particle_timeHistory_info_df.index)
-            particle_timeHistory_info_df['particle_start_ind'] = pd.Series(particle_start_ind, index=particle_timeHistory_info_df.index)
+            particle_timeHistory_info_df['particle_end_ind'] = pd.Series(particle_end_ind, dtype='int64', index=particle_timeHistory_info_df.index)
+            particle_timeHistory_info_df['particle_start_ind'] = pd.Series(particle_start_ind, dtype='int64', index=particle_timeHistory_info_df.index)
 
             # df.set_index(['age'])
             return df, particle_timeHistory_info_df
