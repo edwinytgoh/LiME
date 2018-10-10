@@ -18,7 +18,7 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
     mdot_main = mass_main/tau_ent_main
     mdot_sec = mass_sec/tau_ent_sec
     t = np.arange(0, tau_sec, dt)
-    print(f"Length of t is {len(t)}")
+    print(f"Length of t is {len(t)}; start = 0; stop = {tau_sec:.5f}; step = {dt:.6f}")
     # Calculate main burner:
     [vit_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main, P=P)    
 
@@ -40,7 +40,7 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
         total_mass = remaining_main_mass + remaining_sec_mass + pasbr.mass
         system_state = (remaining_main_mass * main_state + remaining_sec_mass * sec_state + pasbr.mass * pasbr.state)/total_mass
         mean_gas.HPY = system_state[0], mean_gas.P, system_state[1:]
-        system_timeHistory.append([t_now, total_mass, mean_gas.T, mean_gas.mean_molecular_weight, mean_gas.enthalpy_mass] + mean_gas.Y.tolist() + mean_gas.X.tolist())
+        system_timeHistory.append([t_now, total_mass, mean_gas.T, mean_gas.mean_molecular_weight, mean_gas.enthalpy_mass, mean_gas.get_equivalence_ratio()] + mean_gas.Y.tolist() + mean_gas.X.tolist())
         pasbr.react()
         pasbr.mix(tau_mix = tau_mix)
         num_particles_list.append(len(pasbr.particle_list))
@@ -142,12 +142,20 @@ def test():
     df = pd.DataFrame(columns=['tau_mix', 'tau_ent_main', 'tau_ent_sec', 'ent_ratio', 'NO', 'CO', 'tau_sec_required', 'T'], data=np.hstack([tau_mix, tau_ent_main, tau_ent_sec, ent_ratio, NO, CO, tau_sec_required, T_corresponding]))
     df.to_csv("limited_everything_test.csv")
 
-def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
+def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0):
     if not out_dir[-1] == "/":
         out_dir += "/"    
     filename = f"tauMix_{tau_mix:.3f}-tauEntMain_{tau_ent_main:.3f}-tauEntSec_{tau_ent_sec:.3f}"
     if os.path.isfile(out_dir + filename + ".csv"):
+        print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
         return
+    if tau_mix >= 0.05:
+        dt = 0.002*milliseconds
+        print(f"dt = {dt/milliseconds:.3f} milliseconds")
+    else:
+        dt=0.001*milliseconds
+    # dt=0.001*milliseconds
+
     tau_mix *= 1e-3
     tau_ent_main *= 1e-3
     tau_ent_sec *= 1e-3
@@ -171,7 +179,12 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
     pasbr_mass_list = []
 
     t1 = time.time();
-    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec=5.0*milliseconds, dt=0.001*milliseconds)
+    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix=tau_mix, tau_ent_main=tau_ent_main, tau_ent_sec=tau_ent_sec, tau_sec=tau_sec*1e-3, dt=dt)
+    # pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec*milliseconds, dt)
+    particles_df, particle_timeHistory_lengths = pasbr.get_particleTimeHistory()
+    dataFrame_to_pyarrow(particles_df, out_dir + "particle_df_" + filename + ".pickle")
+    dataFrame_to_pyarrow(particle_timeHistory_lengths, out_dir + "particle_lengths_" + filename + ".pickle")
+    # pd.Series(data=np.array(particle_timeHistory_lengths)).to_csv(out_dir + "particle_lengths_" + filename + ".csv")    
     t2 = time.time();
     pasbr_list.append(pasbr)
     NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
@@ -191,11 +204,12 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir):
     data = np.vstack((main_list, sec_list, mix_list, ent_ratio_list, NO_list, CO_list, T_list, tau_sec_required_list, avg_particles_list, time_taken_list))
     df = pd.DataFrame(data=np.transpose(data), columns = ['tau_ent_main', 'tau_ent_sec', 'tau_mix', 'ent_ratio', 'NO', 'CO', 'T', 'tau_sec_required', 'avg_num_particles', 'time_taken (minutes)'])
     df.to_csv(out_dir + filename + ".csv");
-    sys_df.to_csv(out_dir + "sys_df_" + filename + ".csv")
+    # sys_df.to_csv(out_dir + "sys_df_" + filename + ".csv")
     #pasbr_df.to_csv(out_dir + "pasbr_df_" + filename + ".csv")    
     dataFrame_to_pyarrow(df, out_dir + filename + ".pickle")
     dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
     dataFrame_to_pyarrow(pasbr_df, out_dir + "pasbr_df_" + filename + ".pickle")
+    return df, sys_df, pasbr_df, particles_df, particle_timeHistory_lengths
 
 
 if __name__ == "__main__":
@@ -204,15 +218,17 @@ if __name__ == "__main__":
     parser.add_argument("tau_ent_main", type=float)
     parser.add_argument("tau_ent_sec", type = float)
     parser.add_argument("out_dir", type = str)
+    parser.add_argument("tau_sec", type=float)
     args = parser.parse_args()
     tau_mix=args.tau_mix
     tau_ent_main=args.tau_ent_main
     tau_ent_sec=args.tau_ent_sec
     out_dir=args.out_dir
+    tau_sec=args.tau_sec
     # out_dir = "/home/edwin/Documents/python_test//"
     t1 = time.time();    
-    one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir)
+    one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec)
     t2 = time.time()
     print(f"Time taken = {(t2-t1)/60:.2f} minutes")
-
+    # one_case(tau_mix=0.1, tau_ent_main = 0.3, tau_ent_sec = 0.12, out_dir=os.getcwd(), tau_sec=3.0)
 

@@ -11,12 +11,12 @@ import multiprocessing
 
 milliseconds = 0.001 # seconds 
 pd.options.mode.chained_assignment = None  # default='warn'
-def runFlame(gas):
+def runFlame(gas, slope=0.01, curve=0.01):
     # Simulation parameters
     width = 0.06  # m
     # Flame object
     f = ct.FreeFlame(gas, width=width)
-    f.set_refine_criteria(ratio=2, slope=0.01, curve=0.01)
+    f.set_refine_criteria(ratio=2, slope=slope, curve=curve)
     f.transport_model = 'Multi'
     f.solve(loglevel=0, auto=True, refine_grid=True)
     
@@ -186,7 +186,7 @@ def iem(m, tpArray, rArray, rn, dt, omega):
     rn.reinitialize()    
     return Y_avg, h_avg
 
-def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="gri30.xml"): 
+def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="gri30.xml", slope=0.01, curve=0.01): 
     flameGas = premix(phi_main, P=P, mech=mech, T_fuel=T_fuel, T_ox=T_ox) 
     # filename = '{0}_{1}-{2}_{3}-{4}_{5}'.format('phi_main', phi_main, 'P', P, )
     filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main);
@@ -195,7 +195,7 @@ def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="g
             mainBurnerDF = table.to_pandas()
             flameTime = mainBurnerDF.index.values;
     else:
-        flame, flameTime = runFlame(flameGas)
+        flame, flameTime = runFlame(flameGas, slope=slope, curve=curve)
         columnNames = ['x', 'u', 'T', 'n', 'MW'] + ["Y_" + sn for sn in flameGas.species_names] + ["X_" + sn for sn in
                                                                                     flameGas.species_names]
         flameData = np.concatenate(

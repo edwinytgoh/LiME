@@ -65,11 +65,11 @@ class Particle(object):
         self.mech = mech
         self.P = state[1]
         Particle.gas_template.TPX = [state[0], state[1], state[2:]]
-        self.column_names = ['age', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
+        self.column_names = ['age', 'T', 'MW', 'h', 'phi', 'mass'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.mass = particle_mass
         self.age = 0
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
-        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
+        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
         self.timeHistory_array = None
         self.chemistry_enabled = chemistry
     
@@ -331,7 +331,7 @@ class Particle(object):
 
         """
         Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
+        # self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
         reac = ct.ConstPressureReactor(Particle.gas_template,
             volume= self.mass/Particle.gas_template.density)
         reac.chemistry_enabled = self.chemistry_enabled
@@ -339,10 +339,10 @@ class Particle(object):
         netw.advance(dt)
         self.age += dt
         #         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas.X.tolist()]        
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
+        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
         self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
 
-    def get_timeHistory(self, dataFrame=False):
+    def get_timeHistory(self, timeOffset=0, dataFrame=False):
         """Obtain particle's history. 
         
         Parameters
@@ -355,6 +355,8 @@ class Particle(object):
             The array containing particle property time traces 
         """
         self.timeHistory_array = np.vstack(self.timeHistory_list)
+        if timeOffset > 0:
+            self.timeHistory_array[:,0] += timeOffset
         if dataFrame == True:
             df = pd.DataFrame(columns = self.column_names, data = self.timeHistory_array)
             df.set_index(['age'])
@@ -427,6 +429,8 @@ class PaSBR(object):
         self.mean_gas.name = "BatchPaSR Mean Gas"
         self.P = 0.0
         self.timeHistory_list = []
+        self.particle_timeHistory_list = []
+        self.particle_timeHistory_info = []
         if len(particle_list) > 0:
             self.P = particle_list[0].P # NOTE: Assume all particles have same temp
             self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
@@ -511,6 +515,8 @@ class PaSBR(object):
             for i in range(0,len(particles_to_delete)):
                 ind = particles_to_delete[i]
                 if ind < len(self.particle_list):
+                    self.particle_timeHistory_list.append(self.particle_list[ind].get_timeHistory())
+                    self.particle_timeHistory_info.append([len(self.particle_timeHistory_list[-1]), self.time, self.particle_list[ind].age])
                     del self.particle_list[ind] # delete particles 
                     particles_to_delete -= 1 # the list is getting shorter, so adjust the index of particles to be deleted accordingly
             self.updateState() # WE DIDN'T HAVE THIS BEFORE, SO THE BATCHPASR DIDN'T KNOW TO UPDATE IT'S MASS/STATE
@@ -529,7 +535,7 @@ class PaSBR(object):
         #     else:
         #         ind += 1        
     
-    def _canCombine(self, p1, p2, tol=1e-8):
+    def _canCombine(self, p1, p2, tol=1e-6):
         H_1 = p1.state[0]
         Y_1 = p1.state[1:]
         diffH = p2.state[0] - p1.state[0]
@@ -541,7 +547,7 @@ class PaSBR(object):
         diffY_is_small = diffY_percent < tol        
         # diffY_is_small = np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol
         if (diffH_is_small and diffY_is_small):
-            print(f"We are combining particles! diffH_norm = {diffH_percent:.5E}, diffY_percent = {diffY_percent:.5E}")		
+            print(f"We are combining particles at t = {self.time/1e-3:.3f} ms! diffH_norm = {diffH_percent:.5E}, diffY_percent = {diffY_percent:.5E}, system mass = {self.mass:.3f} kg")		
         
         return ( diffH_is_small and diffY_is_small )
 
@@ -638,7 +644,28 @@ class PaSBR(object):
             df.set_index(['age'])
             return df
         
-        return self.timeHistory_array        
+        return self.timeHistory_array   
+
+    def get_particleTimeHistory(self, dataFrame=True):
+        for i in range(0, len(self.particle_list)):
+            self.particle_timeHistory_list.append(self.particle_list[i].get_timeHistory())
+            self.particle_timeHistory_info.append([len(self.particle_timeHistory_list[-1]), self.time, self.particle_list[i].age])
+        particle_timeHistory_array = np.vstack(self.particle_timeHistory_list)
+        if dataFrame == True:
+            df = pd.DataFrame(columns = self.particle_list[-1].column_names, data=particle_timeHistory_array)
+            # {key:value for key, value in zip({'particle_length', 'pasr_time', 'particle_age'}, [particle_timeHistory_array[:,i] for i in range(0,particle_timeHistory_array.shape[1])])}
+            particle_timeHistory_info_df = pd.DataFrame(columns={'particle_length', 'pasr_time', 'particle_age'}, data=np.vstack(self.particle_timeHistory_info))
+            particle_timeHistory_info_df.set_index('particle_age')
+            # pdb.set_trace()
+            particle_end_ind = particle_timeHistory_info_df['particle_length'].cumsum().values - 1
+            particle_start_ind = np.hstack([0, particle_timeHistory_info_df['particle_length'].iloc[:-1].cumsum().values])
+            particle_timeHistory_info_df['particle_end_ind'] = pd.Series(particle_end_ind, dtype='int64', index=particle_timeHistory_info_df.index)
+            particle_timeHistory_info_df['particle_start_ind'] = pd.Series(particle_start_ind, dtype='int64', index=particle_timeHistory_info_df.index)
+
+            # df.set_index(['age'])
+            return df, particle_timeHistory_info_df
+        
+        return particle_timeHistory_array, particle_timeHistory_info
 
 class ParticleFlowController(object):
     def __init__(self, reactor, gas, totalmass, timestep, method):
