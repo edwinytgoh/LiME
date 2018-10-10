@@ -14,14 +14,26 @@ sec_air.TPX = 650, P, {'O2':0.21, 'N2':0.79}
 def COLimitInd(COHistory, constraint):
     return min(np.arange(len(COHistory))[COHistory > constraint][-1] + 1, len(COHistory)-1)
 
-def runCase(phi_jet, phi_global = 0.635, tau_ent_cf = 0.3*1e-3, tau_ent_sec = 0.2*1e-3, toPickle = False):
+def runCase(phi_jet, phi_global = 0.635, enttype = 'time', ent = (0.3*1e-3, 0.2*1e-3), toPickle = False):
     milliseconds = 0.001
-    totalTime = 2.0*milliseconds
+    totalTime = 5.0*milliseconds
     t = np.arange(0, totalTime, 0.001*milliseconds)
     CO_constraint = 31.82 # corrected ppm
-    filename = 'pickles/fin_jet_{0:0.2f}_tau_ent_{1:0.2f}_{2:0.2f}.pickle'.format(phi_jet, tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
+    
     if not os.path.exists('pickles'):
         os.makedirs('pickles')
+    
+    if enttype is 'time':
+        tau_ent_cf = ent[0]
+        tau_ent_sec = ent[1]
+        filename = 'pickles/fin_jet_{0:0.2f}_tau_ent_{1:0.2f}_{2:0.2f}.pickle'.format(phi_jet, tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
+    elif enttype is 'mass':
+        mdot_vit = ent[0]
+        mdot_sec = ent[1]
+        filename = 'pickles/fin_jet_{0:0.2f}_mdot_{1:2.1f}_{2:2.1f}.pickle'.format(phi_jet, mdot_vit/1e3, mdot_sec/1e3)
+    else:
+        print('Entrainment type must be ''mass'' or ''time''')
+        return -1
     
     if os.path.isfile(filename):
         timetraceDF = pyarrow_to_dataFrame(filename)
@@ -54,11 +66,17 @@ def runCase(phi_jet, phi_global = 0.635, tau_ent_cf = 0.3*1e-3, tau_ent_sec = 0.
         interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_secReactor_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
 
         mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
-        mdot_vit = main_mass/tau_ent_cf
+        if enttype is 'time':
+            mdot_vit = main_mass/tau_ent_cf
+        elif enttype is 'mass':
+            tau_ent_cf = main_mass/mdot_vit
         mfc_vit.set_mass_flow_rate(lambda t: mdot_vit if t <= tau_ent_cf else 0)
 
         mfc_sec = ct.MassFlowController(sec_reactor, interface_reactor)
-        mdot_sec = jet_mass/tau_ent_sec
+        if enttype is 'time':
+            mdot_sec = jet_mass/tau_ent_sec
+        elif enttype is 'mass':
+            tau_ent_sec = jet_mass/mdot_sec
         mfc_sec.set_mass_flow_rate(lambda t: mdot_sec if t <= tau_ent_sec else 0)
 
         reactorNet = ct.ReactorNet([vit_reactor, sec_reactor, interface_reactor])
@@ -69,8 +87,8 @@ def runCase(phi_jet, phi_global = 0.635, tau_ent_cf = 0.3*1e-3, tau_ent_sec = 0.
             tnow = t[i]
             reactorNet.advance(tnow)
             # Get the number of moles in each reactor since we're working with mole fractions
-            mass_vit = main_mass - mdot_vit*min(tnow, tau_ent_cf)
-            mass_sec = jet_mass - mdot_sec*min(tnow, tau_ent_sec)
+            mass_vit = max(main_mass - mdot_vit*tnow, 0)
+            mass_sec = max(jet_mass - mdot_sec*tnow, 0)
             mass_int = main_mass - mass_vit + jet_mass - mass_sec
             massFrac = ((interface_reactor.thermo.Y * mass_int + vit_reactor.thermo.Y * mass_vit + sec_reactor.thermo.Y * mass_sec) /
                         (mass_int + mass_vit + mass_sec))
@@ -116,7 +134,6 @@ def get_global_equivalence_ratio(gas, oxidizers = [], ignore = []):
                 nH = s.composition.get('H', 0)
                 # nO = s.composition.get('O', 0)
                 nS = s.composition.get('S', 0)
-
                 alpha += (2*nC + nH/2 + 2*nS) * gas.X[k]
 
         if mol_O == 0:
@@ -130,14 +147,19 @@ def main():
     phi_jet = np.arange(2, 12, 2.0)
     tau_ent_cf = np.array([2.0])*milliseconds
     tau_ent_sec = np.array([0.5, 1.0, 2.0])*milliseconds
+    mass_ent_cf = np.array([20, 30, 40, 50, 60, 100])*1e3
+    mass_ent_sec = np.array([10])*1e3
+    ilen = len(phi_jet)
+    jlen = len(mass_ent_cf)
+    klen = len(mass_ent_sec)
 
-    NOs = np.zeros((len(phi_jet), len(tau_ent_cf), len(tau_ent_sec)))
-    COs = np.zeros((len(phi_jet), len(tau_ent_cf), len(tau_ent_sec)))
-    phi_global = np.zeros((len(phi_jet), len(tau_ent_cf), len(tau_ent_sec)))
-    for i in range(len(phi_jet)):
-        for j in range(len(tau_ent_cf)):
-            for k in range(len(tau_ent_sec)):
-                (dummy, NOs[i, j, k], COs[i, j, k], phi_global[i, j, k]) = runCase(phi_jet[i], tau_ent_cf = tau_ent_cf[j], tau_ent_sec = tau_ent_sec[k], toPickle = True)
+    NOs = np.zeros((ilen, jlen, klen))
+    COs = np.zeros((ilen, jlen, klen))
+    phi_global = np.zeros((ilen, jlen, klen))
+    for i in range(ilen):
+        for j in range(jlen):
+            for k in range(klen):
+                (dummy, NOs[i, j, k], COs[i, j, k], phi_global[i, j, k]) = runCase(phi_jet[i], enttype = 'mass', ent = (mass_ent_cf[j], mass_ent_sec[k]), toPickle = True)
                 print('Final Overall 15% O2 Corrected NO concentration: ' + str(NOs[i, j, k]) + ' ppm')
                 print('Phi_Global of ' + str(phi_global[i, j, k]))    
 
@@ -148,9 +170,9 @@ def main():
     plt.xlabel('Jet Equivalence Ratio')
     plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
     
-    for j in range(len(tau_ent_cf)):
-        for k in range(len(tau_ent_sec)):
-            ax1.plot(phi_jet, NOs[:, j, k], '*-', label='cf={0:0.2f} ms; sec={1:0.2f} ms'.format(tau_ent_cf[j]/milliseconds, tau_ent_sec[k]/milliseconds))
+    for j in range(jlen):
+        for k in range(klen):
+            ax1.plot(phi_jet, NOs[:, j, k], '*-', label='cf={0:0.2f} kg/ms; sec={1:0.2f} kg/ms'.format(mass_ent_cf[j]/1e3, mass_ent_sec[k]/1e3))
     ax1.grid(True)
     handles, labels = ax1.get_legend_handles_labels()
     lgd = ax1.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
@@ -162,9 +184,9 @@ def main():
     plt.xlabel('Jet Equivalence Ratio')
     plt.ylabel('Phi Global')
     
-    for j in range(len(tau_ent_cf)):
-        for k in range(len(tau_ent_sec)):
-            ax2.plot(phi_jet, phi_global[:, j, k], '*', label='cf={0:0.2f} ms; sec={1:0.2f} ms'.format(tau_ent_cf[j]/milliseconds, tau_ent_sec[k]/milliseconds))
+    for j in range(jlen):
+        for k in range(klen):
+            ax2.plot(phi_jet, phi_global[:, j, k], '*', label='cf={0:0.2f} kg/ms; sec={1:0.2f} kg/ms'.format(mass_ent_cf[j]/1e3, mass_ent_sec[k]/1e3))
     ax2.grid(True)
     ax2.set_ylim((0, 1))
     handles, labels = ax2.get_legend_handles_labels()
