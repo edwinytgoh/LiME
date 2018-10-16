@@ -175,7 +175,8 @@ def main():
     tau_ent_cf = 40*milliseconds
     tau_ent_sec = 25*milliseconds
     
-    J_ratio = np.array([1.4, 2.1, 2.8, 3.6])
+    phi_HE = 0.600
+    J_ratio = np.array([2.8])
     phi_jet = np.arange(2, 8.25, 0.25)
 
     NOs = np.zeros((len(phi_jet), len(J_ratio)))
@@ -183,14 +184,14 @@ def main():
     phi_global = np.zeros((len(phi_jet), len(J_ratio)))
     for i in range(len(phi_jet)):
         for j in range(len(J_ratio)):
-            (dummy, NOs[i, j], COs[i, j], phi_global[i, j]) = runCase(0.625, J_ratio[j], phi_jet[i], tau_ent_cf, tau_ent_sec, toPickle = True)
+            (dummy, NOs[i, j], COs[i, j], phi_global[i, j]) = runCase(phi_HE, J_ratio[j], phi_jet[i], tau_ent_cf, tau_ent_sec, toPickle = True)
             print('Final Overall 15% O2 Corrected NO concentration: ' + str(NOs[i,j]) + ' ppm')
             print('Phi_Global of ' + str(phi_global[i, j]))    
 
     # Make some plots
     fig1 = plt.figure()
     ax1 = plt.axes()
-    ax1.set_title('NO at Exit over Jet Parameters')
+    ax1.set_title('NO at Exit phi_HE={0:0.3f}'.format(phi_HE))
     plt.xlabel('Jet Equivalence Ratio')
     plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
     
@@ -199,7 +200,7 @@ def main():
     ax1.grid(True)
     handles, labels = ax1.get_legend_handles_labels()
     lgd = ax1.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
-    fig1.savefig('Phi_HE_0.625_NO.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    fig1.savefig('Phi_HE_{0:0.3f}_NO.png'.format(phi_HE), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     fig2 = plt.figure()
     ax2 = plt.axes()
@@ -212,7 +213,7 @@ def main():
     ax2.grid(True)
     handles, labels = ax2.get_legend_handles_labels()
     lgd = ax2.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.5,0.3))
-    fig2.savefig('Phi_HE_0.625_phi_globals.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    fig2.savefig('Phi_HE_{0:0.3f}_phi_globals.png'.format(phi_HE), bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     plt.show()
 

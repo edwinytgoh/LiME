@@ -547,7 +547,7 @@ class PaSBR(object):
         diffY_is_small = diffY_percent < tol        
         # diffY_is_small = np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol
         if (diffH_is_small and diffY_is_small):
-            print(f"We are combining particles! diffH_norm = {diffH_percent:.5E}, diffY_percent = {diffY_percent:.5E}")		
+            print(f"We are combining particles at t = {self.time/1e-3:.3f} ms! diffH_norm = {diffH_percent:.5E}, diffY_percent = {diffY_percent:.5E}, system mass = {self.mass:.3f} kg")		
         
         return ( diffH_is_small and diffY_is_small )
 
@@ -654,6 +654,7 @@ class PaSBR(object):
         particle_timeHistory_array = np.vstack(self.particle_timeHistory_list)
         if dataFrame == True:
             df = pd.DataFrame(columns = self.particle_list[-1].column_names, data=particle_timeHistory_array)
+            # {key:value for key, value in zip({'particle_length', 'pasr_time', 'particle_age'}, [particle_timeHistory_array[:,i] for i in range(0,particle_timeHistory_array.shape[1])])}
             particle_timeHistory_info_df = pd.DataFrame(columns={'particle_length', 'pasr_time', 'particle_age'}, data=np.vstack(self.particle_timeHistory_info))
             particle_timeHistory_info_df.set_index('particle_age')
             # pdb.set_trace()
