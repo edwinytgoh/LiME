@@ -647,6 +647,7 @@ class PaSBR(object):
         return self.timeHistory_array   
 
     def get_particleTimeHistory(self, dataFrame=True):
+        self.updateState()
         for i in range(0, len(self.particle_list)):
             self.particle_timeHistory_list.append(self.particle_list[i].get_timeHistory())
             self.particle_timeHistory_info.append([len(self.particle_timeHistory_list[-1]), self.time, self.particle_list[i].age])
