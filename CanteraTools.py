@@ -121,6 +121,21 @@ def solvePhi_airSplit(phiGlobal, phiMain, mdotTotal=1000, airSplit=1):
     mas = (-1)*((-1)+airSplit)*mdotTotal*(1+fs*phiGlobal)**(-1)
     return mfm, mam, mfs, mas
 
+def solveMass_PhiJet(phiGlobal, phiMain, phiJet, mdotTotal=1000):
+    fs = 0.058387057492574147
+    mam = 1
+    mfm = mam*fs*phiMain
+    mfs1 = mam*fs*(phiGlobal - phiMain)
+    mas = mfs1/(fs*(phiJet-phiGlobal))
+    mfs = mfs1 + mas*fs*phiGlobal
+    # Normalize
+    mtot = mam + mfm + mas + mfs
+    mam *= mdotTotal/mtot
+    mfm *= mdotTotal/mtot
+    mas *= mdotTotal/mtot
+    mfs *= mdotTotal/mtot
+    return mfm, mam, mfs, mas
+
 def correctNOx(X_i, X_H2O, X_O2):
     dry_i = X_i/(1 - X_H2O)
     dry_O2 = X_O2/(1 - X_H2O)

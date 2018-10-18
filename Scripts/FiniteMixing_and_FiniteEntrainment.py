@@ -11,8 +11,10 @@ fuel.TPX = 300, 25*ct.one_atm, {'CH4':1} # TODO: Come up with a more general way
 air = ct.Solution('gri30.xml'); 
 air.TPX = 650, 25*ct.one_atm, {'O2':0.21, 'N2':0.79}
 
-def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635, phi_main = 0.3719, airSplit = 1, tau_main = (20-0.158)*1e-3, tau_sec = 5*1e-3, dt = 0.001*1e-3, P = 25*ct.one_atm):
-    [mfm, mam, mfs, mas] = solvePhi_airSplit(phi_global, phi_main, 100, airSplit)
+def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635, phi_main = 0.3719, phi_jet = np.inf, tau_main = (20-0.158)*1e-3, tau_sec = 5*1e-3, dt = 0.001*1e-3, P = 25*ct.one_atm):
+    # [mfm, mam, mfs, mas] = solvePhi_airSplit(phi_global, phi_main, 100, airSplit)
+    [mfm, mam, mfs, mas] = solveMass_PhiJet(phi_globa, phi_main, phi_jet, mdotTotal=100)
+    
     mass_main = mfm + mam
     mass_sec = mfs + mas
     mdot_main = mass_main/tau_ent_main
