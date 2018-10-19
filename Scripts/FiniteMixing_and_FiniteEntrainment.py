@@ -13,7 +13,7 @@ air.TPX = 650, 25*ct.one_atm, {'O2':0.21, 'N2':0.79}
 
 def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635, phi_main = 0.3719, phi_jet = np.inf, tau_main = (20-0.158)*1e-3, tau_sec = 5*1e-3, dt = 0.001*1e-3, P = 25*ct.one_atm):
     # [mfm, mam, mfs, mas] = solvePhi_airSplit(phi_global, phi_main, 100, airSplit)
-    [mfm, mam, mfs, mas] = solveMass_PhiJet(phi_globa, phi_main, phi_jet, mdotTotal=100)
+    [mfm, mam, mfs, mas] = solveMass_PhiJet(phi_global, phi_main, phi_jet, mdotTotal=100)
     
     mass_main = mfm + mam
     mass_sec = mfs + mas
@@ -144,18 +144,21 @@ def test():
     df = pd.DataFrame(columns=['tau_mix', 'tau_ent_main', 'tau_ent_sec', 'ent_ratio', 'NO', 'CO', 'tau_sec_required', 'T'], data=np.hstack([tau_mix, tau_ent_main, tau_ent_sec, ent_ratio, NO, CO, tau_sec_required, T_corresponding]))
     df.to_csv("limited_everything_test.csv")
 
-def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0):
+def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0, phi_jet=np.inf):
     if not out_dir[-1] == "/":
         out_dir += "/"    
-    filename = f"tauMix_{tau_mix:.3f}-tauEntMain_{tau_ent_main:.3f}-tauEntSec_{tau_ent_sec:.3f}"
+    if np.isfinite(phi_jet):
+        filename = f"tauMix_{tau_mix:.3f}-tauEntMain_{tau_ent_main:.3f}-tauEntSec_{tau_ent_sec:.3f}-phiJet_{phi_jet:.1f}"
+    else:
+        filename = f"tauMix_{tau_mix:.3f}-tauEntMain_{tau_ent_main:.3f}-tauEntSec_{tau_ent_sec:.3f}"
     if os.path.isfile(out_dir + filename + ".csv"):
         print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
         return
     if tau_mix >= 0.05:
-        dt = 0.002*milliseconds
+        dt = 0.02*milliseconds
         print(f"dt = {dt/milliseconds:.3f} milliseconds")
     else:
-        dt=0.001*milliseconds
+        dt=0.01*milliseconds
     # dt=0.001*milliseconds
 
     tau_mix *= 1e-3
@@ -181,7 +184,7 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0):
     pasbr_mass_list = []
 
     t1 = time.time();
-    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix=tau_mix, tau_ent_main=tau_ent_main, tau_ent_sec=tau_ent_sec, tau_sec=tau_sec*1e-3, dt=dt)
+    pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix=tau_mix, tau_ent_main=tau_ent_main, tau_ent_sec=tau_ent_sec, tau_sec=tau_sec*1e-3, dt=dt, phi_jet=phi_jet)
     # pasbr_df, sys_df, pasbr = run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, tau_sec*milliseconds, dt)
     particles_df, particle_timeHistory_lengths = pasbr.get_particleTimeHistory()
     dataFrame_to_pyarrow(particles_df, out_dir + "particle_df_" + filename + ".pickle")
@@ -221,15 +224,17 @@ if __name__ == "__main__":
     parser.add_argument("tau_ent_sec", type = float)
     parser.add_argument("out_dir", type = str)
     parser.add_argument("tau_sec", type=float)
+    parser.add_argument("phi_jet", nargs='?', type=float, default=np.inf)
     args = parser.parse_args()
     tau_mix=args.tau_mix
     tau_ent_main=args.tau_ent_main
     tau_ent_sec=args.tau_ent_sec
     out_dir=args.out_dir
     tau_sec=args.tau_sec
+    phi_jet=args.phi_jet
     # out_dir = "/home/edwin/Documents/python_test//"
     t1 = time.time();    
-    one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec)
+    one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec, phi_jet)
     t2 = time.time()
     print(f"Time taken = {(t2-t1)/60:.2f} minutes")
     # one_case(tau_mix=0.1, tau_ent_main = 0.3, tau_ent_sec = 0.12, out_dir=os.getcwd(), tau_sec=3.0)
