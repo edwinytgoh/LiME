@@ -155,10 +155,10 @@ def one_case(tau_mix, tau_ent_main, tau_ent_sec, out_dir, tau_sec=5.0, phi_jet=n
         print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
         return
     if tau_mix >= 0.05:
-        dt = 0.02*milliseconds
+        dt = 0.002*milliseconds
         print(f"dt = {dt/milliseconds:.3f} milliseconds")
     else:
-        dt=0.01*milliseconds
+        dt=0.001*milliseconds
     # dt=0.001*milliseconds
 
     tau_mix *= 1e-3
