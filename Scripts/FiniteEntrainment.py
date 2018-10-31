@@ -9,14 +9,14 @@ def COLimitInd(COHistory, constraint):
 
 def runCase(tau_ent_cf, tau_ent_sec, toPickle = False):
     milliseconds = 0.001
+    CO_constraint = 31.82 # corrected ppm
     totalTime = 5.0*milliseconds
     t = np.arange(0, totalTime, 0.001*milliseconds)
-    filename = 'infmix_cf_{0:0.2f}ms_sec_{1:0.2f}ms.pickle'.format(tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
+    filename = 'pickles/infmix_cf_{0:0.2f}ms_sec_{1:0.2f}ms.pickle'.format(tau_ent_cf/milliseconds, tau_ent_sec/milliseconds)
     if os.path.isfile(filename):
         timetraceDF = pyarrow_to_dataFrame(filename)
     else:
         P = 25*ct.one_atm
-        CO_constraint = 31.82 # corrected ppm
         [mfm, mam, mfs, mas] = solvePhi_airSplit(0.635, 0.3719, 100, 1)
         main_mass = mfm + mam
         jet_mass = mfs + mas
@@ -139,14 +139,15 @@ def main():
     fig1.savefig('Const_tau_ent_sec.png', bbox_extra_artists=(lgd,), bbox_inches='tight')
 
     # Constant tau_ent_cf plots:
-    fig2 = plt.figure()
+    csfont = {'fontname':'Times New Roman', 'fontweight':'bold'}
+    fig2 = plt.figure()     
     ax2 = plt.axes()
-    ax2.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_cf')
-    plt.xlabel('tau_ent_sec (ms)')
-    plt.ylabel('Corrected NO Concentration to 15% O2 (ppm)')
+    # ax2.set_title('Variation of Exit NO at CO Constraint over Constant tau_ent_cf')
+    plt.xlabel('tau_ent_sec (ms)', **csfont)
+    plt.ylabel('NO (ppm, corrected)', **csfont)
     
     for i in range(len(tau_ent_cf)):
-        ax2.plot(tau_ent_sec, NOs[i, :], '*-', label='tau_ent_cf = ' + str(tau_ent_cf[i]) + ' ms')
+        ax2.plot(tau_ent_sec, NOs[i, :], 'o-', label='tau_ent_main = ' + str(tau_ent_cf[i]) + ' ms')
         # ax2.plot(tau_ent_sec, COs[i, :], label='tau_ent_cf = ' + str(tau_ent_cf[i]) + ' ms')
     ax2.grid(True)
     handles, labels = ax2.get_legend_handles_labels()
