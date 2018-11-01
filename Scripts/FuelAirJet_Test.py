@@ -159,6 +159,18 @@ def getNOx(sys_df, CO_constraint = 31.82):
         T_corresponding = 0
     return NO_finalcorr, CO_finalcorr, tau_sec, T_corresponding    
 
+def tau_ign_delay_OH(reactor_df):
+    # Define ignition delay time by max X_OH location
+    delay_time = reactor_df['age'].iloc[reactor_df['X_OH'].idxmax()]
+    return delay_time
+
+def tau_ign_delay_T(reactor_df):
+    # Define ignition delay time by max T gradient
+    T_col = reactor_df['T'].tolist()
+    max_grad_ind = np.argmax(np.gradient(np.array(T_col, dtype=float)))
+    delay_time = reactor_df['age'].iloc[max_grad_ind]
+    return delay_time
+
 def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm=1, phi_global = 0.635, phi_main = 0.3719):
     if not (phi_jet_norm == 1):
         filename = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}-phiJet_{phi_jet_norm:.3f}"
@@ -176,7 +188,7 @@ def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm
     tau_sec_required_list = []
     ent_ratio_list = []
     
-    if phi_jet < 1.5:   # Low phi_jet leads to cooler mixture, can take a long time to go; doubling tau_sec
+    if phi_jet < 1.5:   # Low phi_jet leads to cooler mixture, can take a long time to ignite; doubling tau_sec
         tau_sec *= 2
     reactor_df, sys_df = runCase(tau_sec = tau_sec, phi_global = phi_global, phi_main = phi_main, phi_jet = phi_jet, enttype = enttype, ent = (ent_main, ent_sec))
     NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
@@ -196,13 +208,13 @@ def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm
 
     T_init = [reactor_df['T'].iloc[0]]
     phi_init = [reactor_df['phi'].iloc[0]]
-    tau_ign = [reactor_df['age'].iloc[reactor_df['X_CH2O'].idxmax()]]   # Max CH2O as ignition condition
+    tau_ign_OH = [tau_ign_delay_OH(reactor_df)] # Max OH as ignition condition
+    tau_ign_T = [tau_ign_delay_T(reactor_df)]   # Max T grad as ignition condition
     T_max = [reactor_df['T'].max()]
     
-    data = np.vstack((mdot_main, mdot_sec, ent_ratio_list, [mam], [mfm], [mas], [mfs], [phi_jet_norm], NO_list, CO_list, T_list, tau_sec_required_list, T_init, phi_init, tau_ign, T_max))
-    df = pd.DataFrame(data=np.transpose(data), columns = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign', 'T_max'])
-    # df.to_csv(out_dir + filename + ".csv")
-    # dataFrame_to_pyarrow(df, out_dir + filename + ".pickle")
+    data = np.vstack((mdot_main, mdot_sec, ent_ratio_list, [mam], [mfm], [mas], [mfs], [phi_jet_norm], NO_list, CO_list, T_list, tau_sec_required_list, T_init, phi_init, tau_ign_OH, tau_ign_T, T_max))
+    cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
+    df = pd.DataFrame(data=np.transpose(data), columns = cols)
     dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
     dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
     return df, sys_df, reactor_df
@@ -266,6 +278,8 @@ if __name__ == "__main__":
     phi_jet_norm=args.phi_jet_norm
     phi_global=args.phi_global
     phi_main=args.phi_main
+
+    assert (phi_jet_norm <= 1.0) and (phi_jet_norm >= 0.5), 'Use normalized phi between 0.5 and 1 (cannot be lean)'
 
     if not out_dir[-1] == "/":
         out_dir += "/"    
