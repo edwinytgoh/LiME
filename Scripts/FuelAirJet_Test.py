@@ -9,7 +9,7 @@ sec_fuel.TPX = 300, P, {'CH4':1}
 sec_air = ct.Solution('gri30.xml')
 sec_air.TPX = 650, P, {'O2':0.21, 'N2':0.79}
 
-column_names = ['age', 'mass', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in sec_fuel.species_names] + ["X_" + sn for sn in sec_fuel.species_names]    
+column_names = ['age', 'mass', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in sec_fuel.species_names] + ["X_" + sn for sn in sec_fuel.species_names]
 
 def get_timeHistory(timeHistory_list, dataFrame=True):
 
@@ -61,22 +61,21 @@ def runCase(tau_main = 20-0.158, tau_sec = 5.0, phi_global = 0.635, phi_main = 0
     # Using mass fractions since we have those
     sec_reactor = ct.ConstPressureReactor(secondary_gas)
 
-    interface_gas = mix([vit_reactor.thermo, secondary_gas], [main_mass, jet_mass])
+    if enttype == 'time':
+        mdot_vit = main_mass/tau_ent_cf
+        mdot_sec = jet_mass/tau_ent_sec
+    elif enttype == 'mass':
+        tau_ent_cf = main_mass/mdot_vit
+        tau_ent_sec = jet_mass/mdot_sec
+
+    interface_gas = mix([vit_reactor.thermo, secondary_gas], [mdot_vit, mdot_sec])
     initial_mass = 1e-6 # kg
     interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
 
     mfc_vit = ct.MassFlowController(vit_reactor, interface_reactor)
-    if enttype == 'time':
-        mdot_vit = main_mass/tau_ent_cf
-    elif enttype == 'mass':
-        tau_ent_cf = main_mass/mdot_vit
     mfc_vit.set_mass_flow_rate(lambda t: mdot_vit if t <= tau_ent_cf else 0)
 
     mfc_sec = ct.MassFlowController(sec_reactor, interface_reactor)
-    if enttype == 'time':
-        mdot_sec = jet_mass/tau_ent_sec
-    elif enttype == 'mass':
-        tau_ent_sec = jet_mass/mdot_sec
     mfc_sec.set_mass_flow_rate(lambda t: mdot_sec if t <= tau_ent_sec else 0)
 
     reactorNet = ct.ReactorNet([vit_reactor, sec_reactor, interface_reactor])
@@ -160,13 +159,13 @@ def getNOx(sys_df, CO_constraint = 31.82):
         T_corresponding = 0
     return NO_finalcorr, CO_finalcorr, tau_sec, T_corresponding    
 
-def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet=np.inf):
-    if not out_dir[-1] == "/":
-        out_dir += "/"    
-    if np.isfinite(phi_jet):
-        filename = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}-phiJet_{phi_jet:.1f}"
+def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm=1, phi_global = 0.635, phi_main = 0.3719):
+    if not (phi_jet_norm == 1):
+        filename = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}-phiJet_{phi_jet_norm:.3f}"
+        phi_jet = phi_jet_norm/(1-phi_jet_norm)
     else:
         filename = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}"
+        phi_jet = np.inf
     if os.path.isfile(out_dir + filename + ".csv"):
         print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
         return
@@ -176,26 +175,34 @@ def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet=np.i
     T_list = []
     tau_sec_required_list = []
     ent_ratio_list = []
-    main_list = []
-    sec_list = []
-    ent_type_list = []
-
-    reactor_df, sys_df = runCase(tau_sec = tau_sec, phi_jet = phi_jet, enttype = enttype, ent = (ent_main, ent_sec))
+    
+    if phi_jet < 1.5:   # Low phi_jet leads to cooler mixture, can take a long time to go; doubling tau_sec
+        tau_sec *= 2
+    reactor_df, sys_df = runCase(tau_sec = tau_sec, phi_global = phi_global, phi_main = phi_main, phi_jet = phi_jet, enttype = enttype, ent = (ent_main, ent_sec))
     NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
 
     NO_list.append(NO)
     CO_list.append(CO)
     T_list.append(T_corresponding)
     tau_sec_required_list.append(tau_sec_required/milliseconds)
-    ent_ratio_list.append(ent_main/ent_sec)
-    main_list.append(ent_main)
-    sec_list.append(ent_sec)
-    ent_type_list.append(enttype)
+    mam, mfm, mas, mfs = masssplit(phi_main, phi_global, phi_jet)
+    if enttype == 'time':
+        mdot_main = [(mam+mfm)/ent_main]
+        mdot_sec = [(mas+mfs)/ent_sec]
+    else:
+        mdot_main = [ent_main]
+        mdot_sec = [ent_sec]
+    ent_ratio_list.append(mdot_sec[0]/mdot_main[0])
+
+    T_init = [reactor_df['T'].iloc[0]]
+    phi_init = [reactor_df['phi'].iloc[0]]
+    tau_ign = [reactor_df['age'].iloc[reactor_df['X_CH2O'].idxmax()]]   # Max CH2O as ignition condition
+    T_max = [reactor_df['T'].max()]
     
-    data = np.vstack((ent_type_list, main_list, sec_list, ent_ratio_list, NO_list, CO_list, T_list, tau_sec_required_list))
-    df = pd.DataFrame(data=np.transpose(data), columns = ['ent_type', 'ent_main', 'ent_sec', 'ent_ratio', 'NO', 'CO', 'T', 'tau_sec_required'])
-    df.to_csv(out_dir + filename + ".csv")
-    dataFrame_to_pyarrow(df, out_dir + filename + ".pickle")
+    data = np.vstack((mdot_main, mdot_sec, ent_ratio_list, [mam], [mfm], [mas], [mfs], [phi_jet_norm], NO_list, CO_list, T_list, tau_sec_required_list, T_init, phi_init, tau_ign, T_max))
+    df = pd.DataFrame(data=np.transpose(data), columns = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign', 'T_max'])
+    # df.to_csv(out_dir + filename + ".csv")
+    # dataFrame_to_pyarrow(df, out_dir + filename + ".pickle")
     dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
     dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
     return df, sys_df, reactor_df
@@ -243,7 +250,9 @@ if __name__ == "__main__":
     parser.add_argument("ent_sec_step", type=float)
     parser.add_argument("out_dir", type=str)
     parser.add_argument("tau_sec", type=float)
-    parser.add_argument("phi_jet", nargs='?', type=float, default=np.inf)
+    parser.add_argument("phi_jet_norm", nargs='?', type=float, default=1.0)
+    parser.add_argument("phi_global", nargs='?', type=float, default=0.635)
+    parser.add_argument("phi_main", nargs='?', type=float, default=0.3719)
     args = parser.parse_args()
     enttype = args.enttype
     ent_main_low=args.ent_main_low
@@ -254,7 +263,15 @@ if __name__ == "__main__":
     ent_sec_step=args.ent_sec_step
     out_dir=args.out_dir
     tau_sec=args.tau_sec
-    phi_jet=args.phi_jet
+    phi_jet_norm=args.phi_jet_norm
+    phi_global=args.phi_global
+    phi_main=args.phi_main
+
+    if not out_dir[-1] == "/":
+        out_dir += "/"    
+    out_dir += f"{phi_jet_norm:.3f}/"   # Separate runs by phiJet for sanity
+    if not os.path.isdir(out_dir):   # Make folder 
+        os.mkdir(out_dir)
 
     milliseconds = 1e-3
     if enttype == 'time' or enttype == 'mass':
@@ -267,14 +284,18 @@ if __name__ == "__main__":
     jlen = len(ent_sec)
 
     # For full run, ignore tau_ent_cf < tau_ent_sec
-    if enttype is main:
-        mam, mfm, mas, mfs = masssplit(0.3719, 0.635, phi_jet)
+    if enttype == 'mass':
+        phi_jet = np.inf if phi_jet_norm == 1 else phi_jet_norm/(1-phi_jet_norm)
+        mam, mfm, mas, mfs = masssplit(phi_main, phi_global, phi_jet)
         main_mass = mam+mfm
         sec_mass = mas+mfs
 
-    print(os.getcwd())
+    dflist = []
     for i in range(ilen):
         for j in range(jlen):
             if (enttype == 'time' and ent_cf[i] >= ent_sec[j]) or (enttype == 'mass' and (main_mass/ent_cf[i]) >= (sec_mass/ent_sec[j])):
-                outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet=phi_jet)
+                df, sys_df, reactor_df = outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet_norm=phi_jet_norm)
+                dflist.append(df)
+    finaldf = pd.concat(dflist)
+    finaldf.to_csv(out_dir + f"premix-entMain_{ent_main_low:.3f}-{ent_main_upp:.3f}-entSec_{ent_sec_low:.3f}-{ent_sec_upp:.3f}-phiJetNorm_{phi_jet_norm:.3f}.csv")
  
