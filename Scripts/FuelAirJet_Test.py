@@ -217,7 +217,9 @@ def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm
     df = pd.DataFrame(data=np.transpose(data), columns = cols)
     dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
     dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
-    return df, sys_df, reactor_df
+    del sys_df      # Hopefully trying to free up memory once we're done with it
+    del reactor_df
+    return df   # , sys_df, reactor_df
 
 # Defining run cases here
 def main():
@@ -308,7 +310,7 @@ if __name__ == "__main__":
     for i in range(ilen):
         for j in range(jlen):
             if (enttype == 'time' and ent_cf[i] >= ent_sec[j]) or (enttype == 'mass' and (main_mass/ent_cf[i]) >= (sec_mass/ent_sec[j])):
-                df, sys_df, reactor_df = outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet_norm=phi_jet_norm)
+                df = outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet_norm=phi_jet_norm)
                 dflist.append(df)
     finaldf = pd.concat(dflist)
     finaldf.to_csv(out_dir + f"premix-entMain_{ent_main_low:.3f}-{ent_main_upp:.3f}-entSec_{ent_sec_low:.3f}-{ent_sec_upp:.3f}-phiJetNorm_{phi_jet_norm:.3f}.csv")
