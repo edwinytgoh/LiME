@@ -218,7 +218,7 @@ def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm
     data = np.vstack((mdot_main, mdot_sec, ent_ratio_list, [mam], [mfm], [mas], [mfs], [phi_jet_norm], NO_list, CO_list, T_list, tau_sec_required_list, T_init, phi_init, tau_ign_OH, tau_ign_T, T_max))
     cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
     df = pd.DataFrame(data=np.transpose(data), columns = cols)
-    dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
+    # dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
     dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
     del sys_df      # Hopefully trying to free up memory once we're done with it
     del reactor_df
