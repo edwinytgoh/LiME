@@ -53,7 +53,10 @@ def runCase(tau_main = 20-0.158, tau_sec = 5.0, phi_global = 0.635, phi_main = 0
     
     [vit_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main*milliseconds)    # Mixed temperature around 591 K
     fs = 0.058387057492574147
-    secondary_gas = mix([sec_fuel, sec_air], [fs*phi_jet, 1], P = P)
+    if np.isinf(phi_jet):
+        secondary_gas = sec_fuel
+    else:
+        secondary_gas = mix([sec_fuel, sec_air], [fs*phi_jet, 1], P = P)
     mam, mfm, mas, mfs = masssplit(phi_main, phi_global, phi_jet)
     main_mass = mfm + mam
     jet_mass = mfs + mas
@@ -258,12 +261,12 @@ if __name__ == "__main__":
     parser.add_argument("enttype", type=str)
     parser.add_argument("ent_main_low", type=float)
     parser.add_argument("ent_main_upp", type=float)
-    parser.add_argument("ent_main_step", type=float)
+    parser.add_argument("ent_main_num", type=float)
     parser.add_argument("ent_sec_low", type=float)
     parser.add_argument("ent_sec_upp", type=float)
-    parser.add_argument("ent_sec_step", type=float)
+    parser.add_argument("ent_sec_num", type=float)
     parser.add_argument("out_dir", type=str)
-    parser.add_argument("tau_sec", type=float)
+    # parser.add_argument("tau_sec", type=float)
     parser.add_argument("phi_jet_norm", nargs='?', type=float, default=1.0)
     parser.add_argument("phi_global", nargs='?', type=float, default=0.635)
     parser.add_argument("phi_main", nargs='?', type=float, default=0.3719)
@@ -271,12 +274,12 @@ if __name__ == "__main__":
     enttype = args.enttype
     ent_main_low=args.ent_main_low
     ent_main_upp=args.ent_main_upp
-    ent_main_step=args.ent_main_step
+    ent_main_num=args.ent_main_num
     ent_sec_low=args.ent_sec_low
     ent_sec_upp=args.ent_sec_upp
-    ent_sec_step=args.ent_sec_step
+    ent_sec_num=args.ent_sec_num
     out_dir=args.out_dir
-    tau_sec=args.tau_sec
+    # tau_sec=args.tau_sec
     phi_jet_norm=args.phi_jet_norm
     phi_global=args.phi_global
     phi_main=args.phi_main
@@ -291,8 +294,8 @@ if __name__ == "__main__":
 
     milliseconds = 1e-3
     if enttype == 'time' or enttype == 'mass':
-        ent_cf = np.arange(ent_main_low, ent_main_upp+ent_main_step, ent_main_step)
-        ent_sec = np.arange(ent_sec_low, ent_sec_upp+ent_sec_step, ent_sec_step)
+        ent_cf = ent_main_low*((ent_main_upp/ent_main_low) ** (np.linspace(0, 1, num=ent_main_num, endpoint=False)))
+        ent_sec = ent_sec_low*((ent_sec_upp/ent_sec_low) ** (np.linspace(0, 1, num=ent_sec_num, endpoint=False)))
     else:
         print('Use ''time'' or ''mass''  enttype only')
 
@@ -310,6 +313,7 @@ if __name__ == "__main__":
     for i in range(ilen):
         for j in range(jlen):
             if (enttype == 'time' and ent_cf[i] >= ent_sec[j]) or (enttype == 'mass' and (main_mass/ent_cf[i]) >= (sec_mass/ent_sec[j])):
+                tau_sec = (main_mass/ent_cf[i]) + 1.0 if enttype == 'mass' else ent_cf[i] + 1.0
                 df = outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet_norm=phi_jet_norm)
                 dflist.append(df)
     finaldf = pd.concat(dflist)
