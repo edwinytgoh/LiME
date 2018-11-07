@@ -313,9 +313,12 @@ if __name__ == "__main__":
     for i in range(ilen):
         for j in range(jlen):
             if (enttype == 'time' and ent_cf[i] >= ent_sec[j]) or (enttype == 'mass' and (main_mass/ent_cf[i]) >= (sec_mass/ent_sec[j])):
-                tau_sec = (main_mass/ent_cf[i]) + 1.0 if enttype == 'mass' else ent_cf[i] + 1.0
-                df = outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet_norm=phi_jet_norm)
-                dflist.append(df)
+                try:
+                    tau_sec = (main_mass/ent_cf[i]) + 1.0 if enttype == 'mass' else ent_cf[i] + 1.0
+                    df = outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet_norm=phi_jet_norm)
+                    dflist.append(df)
+                except ct.CanteraError:
+                    print('Hit CanteraError; moving on to next case')
     finaldf = pd.concat(dflist)
     finaldf.to_csv(out_dir + f"premix-entMain_{ent_main_low:.3f}-{ent_main_upp:.3f}-entSec_{ent_sec_low:.3f}-{ent_sec_upp:.3f}-phiJetNorm_{phi_jet_norm:.3f}.csv")
  
