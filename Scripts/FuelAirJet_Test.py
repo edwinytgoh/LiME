@@ -2,6 +2,7 @@ import sys
 sys.path.insert(0, "../")
 import os
 from CanteraTools import *
+import multiprocessing as mp
 
 P = 25.0*ct.one_atm
 sec_fuel = ct.Solution('gri30.xml')
@@ -10,6 +11,7 @@ sec_air = ct.Solution('gri30.xml')
 sec_air.TPX = 650, P, {'O2':0.21, 'N2':0.79}
 
 column_names = ['age', 'mass', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in sec_fuel.species_names] + ["X_" + sn for sn in sec_fuel.species_names]
+csvwritelock = mp.Lock()    # Need for locking write to csvfile
 
 def get_timeHistory(timeHistory_list, dataFrame=True):
 
@@ -174,7 +176,7 @@ def tau_ign_delay_T(reactor_df):
     delay_time = reactor_df['age'].iloc[max_grad_ind]
     return delay_time
 
-def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm=1, phi_global = 0.635, phi_main = 0.3719):
+def case_worker(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm=1, phi_global = 0.635, phi_main = 0.3719, csvname = 'test.csv'):
     if not (phi_jet_norm == 1):
         filename = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}-phiJet_{phi_jet_norm:.3f}"
         phi_jet = phi_jet_norm/(1-phi_jet_norm)
@@ -193,8 +195,29 @@ def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm
     
     if phi_jet < 1.5:   # Low phi_jet leads to cooler mixture, can take a long time to ignite; doubling tau_sec
         tau_sec *= 2
-    reactor_df, sys_df = runCase(tau_sec = tau_sec, phi_global = phi_global, phi_main = phi_main, phi_jet = phi_jet, enttype = enttype, ent = (ent_main, ent_sec))
-    NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
+    try:
+        reactor_df, sys_df = runCase(tau_sec = tau_sec, phi_global = phi_global, phi_main = phi_main, phi_jet = phi_jet, enttype = enttype, ent = (ent_main, ent_sec))
+        NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
+        T_init = [reactor_df['T'].iloc[0]]
+        phi_init = [reactor_df['phi'].iloc[0]]
+        tau_ign_OH = [tau_ign_delay_OH(reactor_df)] # Max OH as ignition condition
+        tau_ign_T = [tau_ign_delay_T(reactor_df)]   # Max T grad as ignition condition
+        T_max = [reactor_df['T'].max()]
+        dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
+        dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
+        del sys_df      # Hopefully trying to free up memory once we're done with it
+        del reactor_df
+    
+    except ct.CanteraError:
+        NO = -1
+        CO = -1
+        tau_sec_required = -1
+        T_corresponding = -1
+        T_init = -1
+        phi_init = -1
+        tau_ign_OH = -1
+        tau_ign_T = -1
+        T_max = -1
 
     NO_list.append(NO)
     CO_list.append(CO)
@@ -208,21 +231,17 @@ def outputHandler(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm
         mdot_main = [ent_main]
         mdot_sec = [ent_sec]
     ent_ratio_list.append(mdot_sec[0]/mdot_main[0])
-
-    T_init = [reactor_df['T'].iloc[0]]
-    phi_init = [reactor_df['phi'].iloc[0]]
-    tau_ign_OH = [tau_ign_delay_OH(reactor_df)] # Max OH as ignition condition
-    tau_ign_T = [tau_ign_delay_T(reactor_df)]   # Max T grad as ignition condition
-    T_max = [reactor_df['T'].max()]
     
     data = np.vstack((mdot_main, mdot_sec, ent_ratio_list, [mam], [mfm], [mas], [mfs], [phi_jet_norm], NO_list, CO_list, T_list, tau_sec_required_list, T_init, phi_init, tau_ign_OH, tau_ign_T, T_max))
     cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
     df = pd.DataFrame(data=np.transpose(data), columns = cols)
-    # dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
-    dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
-    del sys_df      # Hopefully trying to free up memory once we're done with it
-    del reactor_df
-    return df   # , sys_df, reactor_df
+    
+    # Need to lock the writing to make sure no garbage occurs
+    csvwritelock.acquire()
+    with open(out_dir + csvname, 'a') as f:
+        df.to_csv(f, header=False)
+    csvwritelock.release()
+    return  # df   # , sys_df, reactor_df
 
 # Defining run cases here
 def main():
@@ -308,17 +327,28 @@ if __name__ == "__main__":
         mam, mfm, mas, mfs = masssplit(phi_main, phi_global, phi_jet)
         main_mass = mam+mfm
         sec_mass = mas+mfs
-
-    dflist = []
+    
+    # Set up csv output
+    csvname = f"premix-entMain_{ent_main_low:.3f}-{ent_main_upp:.3f}-entSec_{ent_sec_low:.3f}-{ent_sec_upp:.3f}-phiJetNorm_{phi_jet_norm:.3f}.csv"
+    with open(out_dir + csvname, "w") as start_csv:
+        cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
+        start_csv.write(',')
+        for col in cols:
+            start_csv.write(col + ',')
+        start_csv.write('\n')
+    
+    # Setup jobs
+    workerpool = mp.Pool()
+    good_args = []
     for i in range(ilen):
         for j in range(jlen):
             if (enttype == 'time' and ent_cf[i] >= ent_sec[j]) or (enttype == 'mass' and (main_mass/ent_cf[i]) >= (sec_mass/ent_sec[j])):
-                try:
-                    tau_sec = (main_mass/ent_cf[i]) + 1.0 if enttype == 'mass' else ent_cf[i] + 1.0
-                    df = outputHandler(enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec=tau_sec, phi_jet_norm=phi_jet_norm)
-                    dflist.append(df)
-                except ct.CanteraError:
-                    print('Hit CanteraError; moving on to next case')
-    finaldf = pd.concat(dflist)
-    finaldf.to_csv(out_dir + f"premix-entMain_{ent_main_low:.3f}-{ent_main_upp:.3f}-entSec_{ent_sec_low:.3f}-{ent_sec_upp:.3f}-phiJetNorm_{phi_jet_norm:.3f}.csv")
- 
+                tau_sec = (main_mass/ent_cf[i]) + 1.0 if enttype == 'mass' else ent_cf[i] + 1.0
+                good_args.append((enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec, phi_jet_norm, 0.635, 0.3719, csvname))
+    
+    # Start the runs
+    results = [workerpool.apply_async(case_worker, a) for a in good_args]
+    workerpool.close()
+    workerpool.join()
+    # Wait for jobs to finish
+    [res.wait() for res in results]
