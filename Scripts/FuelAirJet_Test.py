@@ -38,20 +38,13 @@ def masssplit(phi_main, phi_global, phi_jet):
     mfs *= 100/mtot
     return mam, mfm, mas, mfs
 
-def runCase(tau_main = 20-0.158, tau_sec = 5.0, phi_global = 0.635, phi_main = 0.3719, phi_jet = np.inf, enttype = 'time', ent = (2.0, 0.5)):
+def runCase(tau_main = 20-0.158, tau_sec = 5.0, phi_global = 0.635, phi_main = 0.3719, phi_jet = np.inf, ent = (2.0, 0.5)):
     milliseconds = 0.001
     totalTime = tau_sec*milliseconds
     t = np.arange(0, totalTime, 0.001*milliseconds)
     
-    if enttype == 'time':
-        tau_ent_cf = ent[0]*milliseconds
-        tau_ent_sec = ent[1]*milliseconds
-    elif enttype == 'mass':
-        mdot_vit = ent[0]/milliseconds
-        mdot_sec = ent[1]/milliseconds
-    else:
-        print('Entrainment type must be ''mass'' or ''time''')
-        return -1
+    tau_ent_cf = ent[0]*milliseconds
+    tau_ent_sec = ent[1]*milliseconds
     
     [vit_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main*milliseconds)    # Mixed temperature around 591 K
     fs = 0.058387057492574147
@@ -66,13 +59,9 @@ def runCase(tau_main = 20-0.158, tau_sec = 5.0, phi_global = 0.635, phi_main = 0
     # Using mass fractions since we have those
     sec_reactor = ct.ConstPressureReactor(secondary_gas)
 
-    if enttype == 'time':
-        mdot_vit = main_mass/tau_ent_cf
-        mdot_sec = jet_mass/tau_ent_sec
-    elif enttype == 'mass':
-        tau_ent_cf = main_mass/mdot_vit
-        tau_ent_sec = jet_mass/mdot_sec
-
+    mdot_vit = main_mass/tau_ent_cf
+    mdot_sec = jet_mass/tau_ent_sec
+    
     interface_gas = mix([vit_reactor.thermo, secondary_gas], [mdot_vit, mdot_sec])
     initial_mass = 1e-6 # kg
     interface_reactor = ct.ConstPressureReactor(interface_gas, volume = initial_mass/interface_gas.density) # interface reactor is really the secondary stage in an AFS
@@ -176,35 +165,29 @@ def tau_ign_delay_T(reactor_df):
     delay_time = reactor_df['age'].iloc[max_grad_ind]
     return delay_time
 
-def case_worker(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm=1, phi_global = 0.635, phi_main = 0.3719, csvname = 'test.csv'):
-    if not (phi_jet_norm == 1):
-        filename = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}-phiJet_{phi_jet_norm:.3f}"
-        phi_jet = phi_jet_norm/(1-phi_jet_norm)
-    else:
-        filename = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}"
-        phi_jet = np.inf
-    if os.path.isfile(out_dir + filename + ".csv"):
-        print("Found file " + out_dir + filename + ".csv" + ". Exiting...")
+def case_worker(ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm=1, phi_global = 0.635, phi_main = 0.3719, csvname = 'test.csv'):
+    phi_jet = np.inf if phi_jet_norm == 1.0 else phi_jet_norm/(1-phi_jet_norm)
+    if os.path.isfile(out_dir + csvname):
+        print("Found file " + out_dir + csvname + ". Exiting...")
         return
 
     NO_list = []
     CO_list = []
     T_list = []
     tau_sec_required_list = []
-    ent_ratio_list = []
     
-    if phi_jet < 1.5:   # Low phi_jet leads to cooler mixture, can take a long time to ignite; doubling tau_sec
-        tau_sec *= 2
+    if phi_jet < 1.5:   # Low phi_jet leads to cooler mixture, can take a long time to ignite; increasing tau_sec
+        tau_sec *= 1.5
     try:
-        reactor_df, sys_df = runCase(tau_sec = tau_sec, phi_global = phi_global, phi_main = phi_main, phi_jet = phi_jet, enttype = enttype, ent = (ent_main, ent_sec))
+        reactor_df, sys_df = runCase(tau_sec = tau_sec, phi_global = phi_global, phi_main = phi_main, phi_jet = phi_jet, ent = (ent_main, ent_sec))
         NO, CO, tau_sec_required, T_corresponding = getNOx(sys_df)
         T_init = [reactor_df['T'].iloc[0]]
         phi_init = [reactor_df['phi'].iloc[0]]
         tau_ign_OH = [tau_ign_delay_OH(reactor_df)] # Max OH as ignition condition
         tau_ign_T = [tau_ign_delay_T(reactor_df)]   # Max T grad as ignition condition
         T_max = [reactor_df['T'].max()]
-        dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
-        dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
+        # dataFrame_to_pyarrow(sys_df, out_dir + "sys_df_" + filename + ".pickle")
+        # dataFrame_to_pyarrow(reactor_df, out_dir + "reactor_df_" + filename + ".pickle")
         del sys_df      # Hopefully trying to free up memory once we're done with it
         del reactor_df
     
@@ -224,79 +207,38 @@ def case_worker(enttype, ent_main, ent_sec, out_dir, tau_sec=5.0, phi_jet_norm=1
     T_list.append(T_corresponding)
     tau_sec_required_list.append(tau_sec_required/milliseconds)
     mam, mfm, mas, mfs = masssplit(phi_main, phi_global, phi_jet)
-    if enttype == 'time':
-        mdot_main = [(mam+mfm)/ent_main]
-        mdot_sec = [(mas+mfs)/ent_sec]
-    else:
-        mdot_main = [ent_main]
-        mdot_sec = [ent_sec]
-    ent_ratio_list.append(mdot_sec[0]/mdot_main[0])
+    tau_main = [ent_main]
+    tau_sec = [ent_sec]
+    tau_ratio = [tau_main[0]/tau_sec[0]]
+    mdot_main = [(mam+mfm)/ent_main]
+    mdot_sec = [(mas+mfs)/ent_sec]
+    mdot_ratio = [mdot_sec[0]/mdot_main[0]]
     
-    data = np.vstack((mdot_main, mdot_sec, ent_ratio_list, [mam], [mfm], [mas], [mfs], [phi_jet_norm], NO_list, CO_list, T_list, tau_sec_required_list, T_init, phi_init, tau_ign_OH, tau_ign_T, T_max))
-    cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
+    data = np.vstack((tau_main, tau_sec, tau_ratio, mdot_main, mdot_sec, mdot_ratio, [mam], [mfm], [mas], [mfs], [phi_jet_norm], [phi_global], [phi_main], NO_list, CO_list, T_list, tau_sec_required_list, T_init, phi_init, tau_ign_OH, tau_ign_T, T_max))
+    cols = ['tau_main', 'tau_sec', 'tau_ratio', 'mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'phi_global', 'phi_main', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
     df = pd.DataFrame(data=np.transpose(data), columns = cols)
     
-    # Need to lock the writing to make sure no garbage occurs
-    csvwritelock.acquire()
-    with open(out_dir + csvname, 'a') as f:
-        df.to_csv(f, header=False)
-    csvwritelock.release()
+    with open(out_dir + csvname, 'w') as f:
+        df.to_csv(f)
     return  # df   # , sys_df, reactor_df
 
 # Defining run cases here
-def main():
-    milliseconds = 1e-3
-    phi_jet = np.arange(2, 12, 2.0)
-    entraintype = 'time'    # use 'time' or 'mass'
-    tau_ent_cf = np.array([2.0])*milliseconds
-    tau_ent_sec = np.array([0.5])*milliseconds
-    mass_ent_cf = np.array([20, 30, 40, 50, 60, 100])*1e3
-    mass_ent_sec = np.array([10])*1e3
-    if entraintype is 'time':
-        ent_cf = tau_ent_cf
-        ent_sec = tau_ent_sec
-    elif entraintype is 'mass':
-        ent_cf = mass_ent_cf
-        ent_sec = mass_ent_sec
-    else:
-        print('Use ''time'' or ''mass''  entraintype only')
-        return 1
-
-    ilen = len(phi_jet)
-    jlen = len(ent_cf)
-    klen = len(ent_sec)
-
-    NOs = np.zeros((ilen, jlen, klen))
-    COs = np.zeros((ilen, jlen, klen))
-    phi_global = np.zeros((ilen, jlen, klen))
-    for i in range(ilen):
-        for j in range(jlen):
-            for k in range(klen):
-                (dummy, NOs[i, j, k], COs[i, j, k], phi_global[i, j, k]) = runCase(phi_jet[i], enttype = entraintype, ent = (ent_cf[j], ent_sec[k]), toPickle = True)
-                print('Final Overall 15% O2 Corrected NO concentration: ' + str(NOs[i, j, k]) + ' ppm')
+# def main():
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("enttype", type=str)
-    parser.add_argument("ent_main_low", type=float)
-    parser.add_argument("ent_main_upp", type=float)
-    parser.add_argument("ent_main_num", type=float)
-    parser.add_argument("ent_sec_low", type=float)
-    parser.add_argument("ent_sec_upp", type=float)
-    parser.add_argument("ent_sec_num", type=float)
+    # parser.add_argument("enttype", type=str)  Simplifying, only assuming time for now
+    parser.add_argument("ent_main", type=float)
+    parser.add_argument("ent_sec", type=float)
     parser.add_argument("out_dir", type=str)
     # parser.add_argument("tau_sec", type=float)
     parser.add_argument("phi_jet_norm", nargs='?', type=float, default=1.0)
     parser.add_argument("phi_global", nargs='?', type=float, default=0.635)
     parser.add_argument("phi_main", nargs='?', type=float, default=0.3719)
     args = parser.parse_args()
-    enttype = args.enttype
-    ent_main_low=args.ent_main_low
-    ent_main_upp=args.ent_main_upp
-    ent_main_num=args.ent_main_num
-    ent_sec_low=args.ent_sec_low
-    ent_sec_upp=args.ent_sec_upp
-    ent_sec_num=args.ent_sec_num
+    # enttype = args.enttype
+    ent_main=args.ent_main
+    ent_sec=args.ent_sec
     out_dir=args.out_dir
     # tau_sec=args.tau_sec
     phi_jet_norm=args.phi_jet_norm
@@ -306,49 +248,20 @@ if __name__ == "__main__":
     assert (phi_jet_norm <= 1.0) and (phi_jet_norm >= 0.5), 'Use normalized phi between 0.5 and 1 (cannot be lean)'
 
     if not out_dir[-1] == "/":
-        out_dir += "/"    
-    out_dir += f"{phi_jet_norm:.3f}/"   # Separate runs by phiJet for sanity
+        out_dir += "/"
     if not os.path.isdir(out_dir):   # Make folder 
         os.mkdir(out_dir)
 
-    milliseconds = 1e-3
-    if enttype == 'time' or enttype == 'mass':
-        ent_cf = ent_main_low*((ent_main_upp/ent_main_low) ** (np.linspace(0, 1, num=ent_main_num, endpoint=False)))
-        ent_sec = ent_sec_low*((ent_sec_upp/ent_sec_low) ** (np.linspace(0, 1, num=ent_sec_num, endpoint=False)))
-    else:
-        print('Use ''time'' or ''mass''  enttype only')
-
-    ilen = len(ent_cf)
-    jlen = len(ent_sec)
-
-    # For full run, ignore tau_ent_cf < tau_ent_sec
-    if enttype == 'mass':
-        phi_jet = np.inf if phi_jet_norm == 1 else phi_jet_norm/(1-phi_jet_norm)
-        mam, mfm, mas, mfs = masssplit(phi_main, phi_global, phi_jet)
-        main_mass = mam+mfm
-        sec_mass = mas+mfs
-    
     # Set up csv output
-    csvname = f"premix-entMain_{ent_main_low:.3f}-{ent_main_upp:.3f}-entSec_{ent_sec_low:.3f}-{ent_sec_upp:.3f}-phiJetNorm_{phi_jet_norm:.3f}.csv"
-    with open(out_dir + csvname, "w") as start_csv:
-        cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
-        start_csv.write(',')
-        for col in cols:
-            start_csv.write(col + ',')
-        start_csv.write('\n')
+    csvname = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}-phiJetNorm_{phi_jet_norm:.3f}-phiMain_{phi_main:0.3f}.csv"
+    # with open(out_dir + csvname, "w") as start_csv:
+    #     cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
+    #     start_csv.write(',')
+    #     for col in cols:
+    #         start_csv.write(col + ',')
+    #     start_csv.write('\n')
     
-    # Setup jobs
-    workerpool = mp.Pool()
-    good_args = []
-    for i in range(ilen):
-        for j in range(jlen):
-            if (enttype == 'time' and ent_cf[i] >= ent_sec[j]) or (enttype == 'mass' and (main_mass/ent_cf[i]) >= (sec_mass/ent_sec[j])):
-                tau_sec = (main_mass/ent_cf[i]) + 1.0 if enttype == 'mass' else ent_cf[i] + 1.0
-                good_args.append((enttype, ent_cf[i], ent_sec[j], out_dir, tau_sec, phi_jet_norm, 0.635, 0.3719, csvname))
-    
-    # Start the runs
-    results = [workerpool.apply_async(case_worker, a) for a in good_args]
-    workerpool.close()
-    workerpool.join()
-    # Wait for jobs to finish
-    [res.wait() for res in results]
+    # Run single case
+    if ent_main >= ent_sec:
+        tau_sec = ent_main + 1.0
+        case_worker(ent_main, ent_sec, out_dir, tau_sec, phi_jet_norm, phi_global, phi_main, csvname)
