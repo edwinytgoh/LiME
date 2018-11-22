@@ -253,7 +253,7 @@ if __name__ == "__main__":
         os.mkdir(out_dir)
 
     # Set up csv output
-    csvname = f"premix-entMain_{ent_main:.3f}-entSec_{ent_sec:.3f}-phiJetNorm_{phi_jet_norm:.3f}-phiMain_{phi_main:0.3f}.csv"
+    csvname = f"premix-entMain_{ent_main:.5f}-entSec_{ent_sec:.5f}-phiJetNorm_{phi_jet_norm:.3f}-phiMain_{phi_main:0.3f}.csv"
     # with open(out_dir + csvname, "w") as start_csv:
     #     cols = ['mdot_main', 'mdot_sec', 'mdot_ratio', 'mam', 'mfm', 'mas', 'mfs', 'phi_jet_norm', 'NO', 'CO', 'T', 'tau_sec_required', 'T_init', 'phi_init', 'tau_ign_OH', 'tau_ign_T', 'T_max']
     #     start_csv.write(',')
