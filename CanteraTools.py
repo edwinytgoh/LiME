@@ -312,3 +312,88 @@ def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None
         secondaryReactor.syncState() 
         stagedDF = pd.concat([mainDF, secDF]) 
         return stagedDF;
+
+def get_tauHot(timeSeries, out_df, dT = 200): ## REMEMBER TO CHECK UNITS!!!
+    """Function that calculates tau_hot, i.e. timescale that represents 
+    the duration of high-temperature regions in a staged combustor's secondary stage.
+
+    Parameters
+    ----------
+    timeSeries : `pandas.DataFrame`
+        DataFrame that contains the time history of the current case. Needs to contain columns ['age'] and ['T'] for current time and corresponding temperature, respectively.
+    
+    out_df : `pandas.DataFrame`
+        DataFrame of shape (1,n) that contains parameters of the current case: ['tau_ign_OH'], ['tau_sec_required'], ['T']. Warning: DO NOT pass in a pandas.Series!
+
+    dT : float
+        Number that represents drop in temperature allowed before calling the end of the high-temperature region 
+    
+    Returns
+    --------
+    tau_hot : float
+        Calculated tau_hot in milliseconds 
+
+    tau_hot_start : float 
+        Starting time of the high-temperature region in seconds 
+    
+    tau_hot_end : float 
+        Ending time of the high-temperature region in seconds
+
+    """
+    tau_hot_start = out_df['tau_ign_OH'].values[0]
+    T_max = max(timeSeries['T'])
+    # print(f"T_max = {T_max:.2f} K;\nIgnition delay based on OH conc: {tau_hot_start/1e-3} ms")
+    overshoot = any(T_max > out_df['T'] + 5)
+    max_ind = timeSeries['T'].idxmax()
+    if overshoot:
+        # print(f"Overshoot by: {T_max - out_df['T']:.2f} K")
+        # find temperature after peak where T = T_max - dT
+        remaining_df = timeSeries.iloc[max_ind:]
+        remaining_df = remaining_df[(remaining_df['T'] <= T_max - dT)]
+        tau_hot_end = remaining_df['age'].values[0]
+    else: 
+        # print(f"No overshoot; using tau_CO = {out_df['tau_sec_required'].iloc[0]:.2} ms")
+        tau_hot_end = out_df['tau_sec_required'].values[0]*1e-3
+    tau_hot = (tau_hot_end - tau_hot_start)/1e-3
+    return tau_hot, tau_hot_start, tau_hot_end
+
+def get_tauNOx(timeSeries, tauHot_start, tauHot_end, P=25*101325):
+    """Function that calculates tau_NOx, i.e. timescale that represents 
+    the rate of NOx production in a staged combustor's high-temperature region.
+
+    Parameters
+    ----------
+    timeSeries : `pandas.DataFrame`
+        DataFrame that contains the time history of the current case. Needs to contain columns ['age'] and ['T'] for current time and corresponding temperature, respectively.
+    
+    tauHot_start : float 
+        Starting time of the high-temperature region in seconds 
+    
+    tauHot_end : float 
+        Ending time of the high-temperature region in seconds
+    
+    P : float 
+        Pressure of the system in Pascals. Defaults to 25 atm, i.e. 2.5 MPa
+
+    Returns
+    --------
+    tau_NOx : float
+        Calculated tau_NOx in milliseconds 
+
+    """    
+    eps = 0.0001*1e-3
+    ign_state = timeSeries[(timeSeries['age'] >= tauHot_start - eps) & (timeSeries['age'] <= tauHot_start + eps)] # system state at ignition
+    end_state = timeSeries[(timeSeries['age'] >= tauHot_end - eps) & (timeSeries['age'] <= tauHot_end + eps)] # system "end" state
+
+    R_universal = 8.3144598; # J/mol-K or m3-Pa/mol-K
+    M = (P/R_universal)/timeSeries['T'] # units of moles/volume
+    M = (M[1:].values + M[:-1].values)*0.5
+
+    
+    d_XNO = timeSeries['X_NO'].iloc[1:].values - timeSeries['X_NO'].iloc[:-1].values
+    d_t = timeSeries['age'].iloc[1:].values - timeSeries['age'].iloc[:-1].values
+    dNO_dt = (M*d_XNO)/d_t
+    start_ind = ign_state.index.values[0]
+    end_ind = end_state.index.values[0] + 1
+    tau_NOx = np.mean(M[start_ind:end_ind]/(dNO_dt[start_ind:end_ind]))
+    return tau_NOx/1e-3
