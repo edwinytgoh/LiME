@@ -357,7 +357,7 @@ def get_tauHot(timeSeries, out_df, dT = 200): ## REMEMBER TO CHECK UNITS!!!
         elif overshoot_value > 0.5*dT:
             remaining_df = remaining_df[(remaining_df['T'] <= T_max - 0.5*dT)] # In this case, T_max - T_final > 0.5*dT, T_max - 0.5*dT > T_final
             tau_hot_end = remaining_df['age'].values[0]
-        else
+        else:
             tau_hot_end = out_df['tau_sec_required'].values[0]*1e-3
     else: 
         # print(f"No overshoot; using tau_CO = {out_df['tau_sec_required'].iloc[0]:.2} ms")
