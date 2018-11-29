@@ -341,10 +341,10 @@ def get_tauHot(timeSeries, out_df, dT = 200): ## REMEMBER TO CHECK UNITS!!!
 
     """
     tau_hot_start = out_df['tau_ign_OH'].values[0]
-    T_max = max(timeSeries['T'])
-    T_final = out_df['T']
+    T_max = max(timeSeries['T']).values
+    T_final = out_df['T'].values
     # print(f"T_max = {T_max:.2f} K;\nIgnition delay based on OH conc: {tau_hot_start/1e-3} ms")
-    overshoot = any(T_max > T_final + 15)
+    overshoot = T_max > T_final + 15
     overshoot_value = T_max - T_final
     max_ind = timeSeries['T'].idxmax()
     if overshoot:
