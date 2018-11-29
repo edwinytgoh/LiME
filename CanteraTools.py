@@ -342,15 +342,23 @@ def get_tauHot(timeSeries, out_df, dT = 200): ## REMEMBER TO CHECK UNITS!!!
     """
     tau_hot_start = out_df['tau_ign_OH'].values[0]
     T_max = max(timeSeries['T'])
+    T_final = out_df['T']
     # print(f"T_max = {T_max:.2f} K;\nIgnition delay based on OH conc: {tau_hot_start/1e-3} ms")
-    overshoot = any(T_max > out_df['T'] + 5)
+    overshoot = any(T_max > T_final + 15)
+    overshoot_value = T_max - T_final
     max_ind = timeSeries['T'].idxmax()
     if overshoot:
         # print(f"Overshoot by: {T_max - out_df['T']:.2f} K")
         # find temperature after peak where T = T_max - dT
         remaining_df = timeSeries.iloc[max_ind:]
-        remaining_df = remaining_df[(remaining_df['T'] <= T_max - dT)]
-        tau_hot_end = remaining_df['age'].values[0]
+        if overshoot_value > dT:
+            remaining_df = remaining_df[(remaining_df['T'] <= T_max - dT)]
+            tau_hot_end = remaining_df['age'].values[0]
+        elif overshoot_value > 0.5*dT:
+            remaining_df = remaining_df[(remaining_df['T'] <= T_max - 0.5*dT)] # In this case, T_max - T_final > 0.5*dT, T_max - 0.5*dT > T_final
+            tau_hot_end = remaining_df['age'].values[0]
+        else
+            tau_hot_end = out_df['tau_sec_required'].values[0]*1e-3
     else: 
         # print(f"No overshoot; using tau_CO = {out_df['tau_sec_required'].iloc[0]:.2} ms")
         tau_hot_end = out_df['tau_sec_required'].values[0]*1e-3
