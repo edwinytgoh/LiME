@@ -340,29 +340,30 @@ def get_tauHot(timeSeries, out_df, dT = 200): ## REMEMBER TO CHECK UNITS!!!
         Ending time of the high-temperature region in seconds
 
     """
-    tau_hot_start = out_df['tau_ign_OH'].values[0]
-    T_max = max(timeSeries['T'])
+    # pdb.set_trace()
+    tau_hot_start = out_df['tau_ign_OH'].values[0] # seconds
+    T_max = max(timeSeries['T']) 
     T_final = out_df['T'].values
     # print(f"T_max = {T_max:.2f} K;\nIgnition delay based on OH conc: {tau_hot_start/1e-3} ms")
-    overshoot = T_max > T_final + 15
     overshoot_value = T_max - T_final
+    overshoot = overshoot_value > 15
     max_ind = timeSeries['T'].idxmax()
     if overshoot:
         # print(f"Overshoot by: {T_max - out_df['T']:.2f} K")
         # find temperature after peak where T = T_max - dT
         remaining_df = timeSeries.iloc[max_ind:]
         if overshoot_value > dT:
-            remaining_df = remaining_df[(remaining_df['T'] <= T_max - dT)]
-            tau_hot_end = remaining_df['age'].values[0]
+            remaining_df = remaining_df[(remaining_df['T'] <= T_max - dT)] #  choose first value where T drops by dT from T_Max
+            tau_hot_end = remaining_df['age'].values[0] # in SECONDS
         elif overshoot_value > 0.5*dT:
             remaining_df = remaining_df[(remaining_df['T'] <= T_max - 0.5*dT)] # In this case, T_max - T_final > 0.5*dT, T_max - 0.5*dT > T_final
-            tau_hot_end = remaining_df['age'].values[0]
+            tau_hot_end = remaining_df['age'].values[0] # SECONDS
         else:
-            tau_hot_end = out_df['tau_sec_required'].values[0]*1e-3
+            tau_hot_end = out_df['tau_sec_required'].values[0]*1e-3 # *1e-3 to convert to SECONDS
     else: 
         # print(f"No overshoot; using tau_CO = {out_df['tau_sec_required'].iloc[0]:.2} ms")
         tau_hot_end = out_df['tau_sec_required'].values[0]*1e-3
-    tau_hot = (tau_hot_end - tau_hot_start)/1e-3
+    tau_hot = (tau_hot_end - tau_hot_start)/1e-3 # convert to MILLISECONDS
     return tau_hot, tau_hot_start, tau_hot_end
 
 def get_tauNOx(timeSeries, tauHot_start, tauHot_end, P=25*101325):
@@ -395,13 +396,71 @@ def get_tauNOx(timeSeries, tauHot_start, tauHot_end, P=25*101325):
 
     R_universal = 8.3144598; # J/mol-K or m3-Pa/mol-K
     M = (P/R_universal)/timeSeries['T'] # units of moles/volume
-    M = (M[1:].values + M[:-1].values)*0.5
-
+    dt = timeSeries['age'].diff()
+    dM = M.diff();
+    dM_dt = dM/dt
+    X_NO = timeSeries['X_NO']
+    conc_NO = M*X_NO; 
+    d_XNO = X_NO.diff()
+    d_XNO_dt = d_XNO/dt
+    dNO_dt = (X_NO*dM_dt) + (M*d_XNO_dt)
     
-    d_XNO = timeSeries['X_NO'].iloc[1:].values - timeSeries['X_NO'].iloc[:-1].values
-    d_t = timeSeries['age'].iloc[1:].values - timeSeries['age'].iloc[:-1].values
-    dNO_dt = (M*d_XNO)/d_t
-    start_ind = ign_state.index.values[0]
-    end_ind = end_state.index.values[0] + 1
-    tau_NOx = np.mean(M[start_ind:end_ind]/(dNO_dt[start_ind:end_ind]))
-    return tau_NOx/1e-3
+    tau_NOx_column = M/dNO_dt
+    tau_NOx_NO_column = conc_NO/dNO_dt
+    
+    start_ind = int(ign_state.index.values[0])
+    end_ind = int(end_state.index.values[0] + 1)
+    tau_NOx = np.mean(tau_NOx_column.iloc[start_ind:end_ind+1])
+    
+    tau_NOx_NO = np.mean(tau_NOx_NO_column.iloc[start_ind:end_ind+1])
+
+    start_time = ign_state['age'].values[0]/1e-3
+    end_time = end_state['age'].values[0]/1e-3
+
+    # tau_NOx_2 = np.mean()
+
+    return tau_NOx/1e-3, tau_NOx_NO/1e-3, start_time, end_time
+
+def get_Da(timeSeries, out_df, P=25*101325):
+    eps = 0.0001*1e-3
+    R_universal = 8.3144598; # J/mol-K or m3-Pa/mol-K
+    M = (P/R_universal)/timeSeries['T'] # units of moles/volume
+    dt = timeSeries['age'].diff()
+    dM = M.diff();
+    dM_dt = dM/dt
+    X_NO = timeSeries['X_NO']
+    conc_NO = M*X_NO; 
+    d_XNO = X_NO.diff()
+    d_XNO_dt = d_XNO/dt
+    dNO_dt = (X_NO*dM_dt) + (M*d_XNO_dt)
+
+    tau_NOx_column = M/dNO_dt
+    tau_NOx_NO_column = conc_NO/dNO_dt    
+    
+    # ign_state = timeSeries[(timeSeries['age'] >= tau_hot_start - eps) & (timeSeries['age'] <= tau_hot_start + eps)] # system state at ignition
+    # end_state = timeSeries[(timeSeries['age'] >= tau_hot_end - eps) & (timeSeries['age'] <= tau_hot_end + eps)] # system "end" state
+    tau_hot_start = out_df['tau_ign_OH'].values[0]
+    start_ind = int(timeSeries[(timeSeries['age'] >= tau_hot_start - eps) & (timeSeries['age'] <= tau_hot_start + eps)].index.values[0])
+    # end_ind = int(end_state.index.values[0]) if int(end_state.index.values[0]) <= start_ind else start_ind
+    dNO_dt_post_ign = dNO_dt.iloc[start_ind:]
+    max_dNO_dt = max(dNO_dt_post_ign)
+    dNO_dt_post_max = dNO_dt.iloc[dNO_dt_post_ign.idxmax():]
+    perc_max = 0.25
+    result_list = dNO_dt_post_max[dNO_dt_post_max <= perc_max*max_dNO_dt]
+    # pdb.set_trace()
+    while len(result_list) < 1:
+        perc_max *= 2
+        result_list = dNO_dt_post_max[dNO_dt_post_max <= perc_max*max_dNO_dt]
+    
+    end_ind = result_list.index.values[0]
+    
+    tau_hot_end = timeSeries['age'].iloc[end_ind]
+    # print(f"end_ind = {end_ind}, end time = {tau_hot_end/1e-3:.3f}, tau_sec_req = {out_df['tau_sec_required'].values[0]:.3f}")
+
+    tau_hot = (tau_hot_end - tau_hot_start)/1e-3 # convert to MILLISECONDS
+
+    tau_NOx_NO = np.mean(tau_NOx_NO_column.iloc[start_ind:end_ind+1])/1e-3 # in milliseconds; note: have to actually do a weighted time-average if our timesteps are not equal (e.g., in the finite-mixing cases)
+
+    Da = tau_hot/tau_NOx_NO
+
+    return tau_hot, tau_NOx_NO, Da, tau_hot_start/1e-3, tau_hot_end/1e-3
