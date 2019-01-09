@@ -446,23 +446,25 @@ def get_Da(timeSeries, out_df, P=25*101325):
     # end_ind = int(end_state.index.values[0]) if int(end_state.index.values[0]) <= start_ind else start_ind
     dNO_dt_post_ign = dNO_dt.iloc[start_ind:]
     max_dNO_dt = max(dNO_dt_post_ign)
-    dNO_dt_post_max = dNO_dt.iloc[dNO_dt_post_ign.values.argmax():]
-    perc_max = 0.25
+    dNO_dt_post_max = dNO_dt_post_ign.iloc[dNO_dt_post_ign.values.argmax():] # need to limit ourselves to post_max because don't want to get points before peak NO production
+    perc_max = 0.3
     result_list = dNO_dt_post_max[dNO_dt_post_max <= perc_max*max_dNO_dt]
     # pdb.set_trace()
-    while len(result_list) < 1:
-        perc_max *= 2
-        result_list = dNO_dt_post_max[dNO_dt_post_max <= perc_max*max_dNO_dt]
-    
+    # while len(result_list) < 1 and perc_max <= 0.5:
+    #     perc_max += .1
+    #     result_list = dNO_dt_post_max[dNO_dt_post_max <= perc_max*max_dNO_dt]
+
     end_ind = result_list.index.values[0]
-    
     tau_hot_end = timeSeries['age'].iloc[end_ind]
+    assert tau_hot_end > tau_hot_start, "tauHotEnd <= tauHotStart"
     # print(f"end_ind = {end_ind}, end time = {tau_hot_end/1e-3:.3f}, tau_sec_req = {out_df['tau_sec_required'].values[0]:.3f}")
+    # print(f"max NO rate = {max_dNO_dt:.2f} = {dNO_dt_post_ign.iloc[dNO_dt_post_ign.values.argmax()]:.2f}")
+    # print(f"len(result_list) = {len(result_list)}; end_ind = {end_ind}")
 
     tau_hot = (tau_hot_end - tau_hot_start)/1e-3 # convert to MILLISECONDS
 
     tau_NOx_NO = np.mean(tau_NOx_NO_column.iloc[start_ind:end_ind+1])/1e-3 # in milliseconds; note: have to actually do a weighted time-average if our timesteps are not equal (e.g., in the finite-mixing cases)
 
     Da = tau_hot/tau_NOx_NO
-
+    # print(f"{tau_hot:.2f}, {tau_NOx_NO:.2f}, {Da:.2f}, {tau_hot_start/1e-3:.2f}, {tau_hot_end/1e-3:.2f}")
     return tau_hot, tau_NOx_NO, Da, tau_hot_start/1e-3, tau_hot_end/1e-3
