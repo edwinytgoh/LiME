@@ -25,6 +25,8 @@ def runFlame(gas, slope=0.01, curve=0.01):
     CH2O = gas.species_index('CH2O');
     X_CH2O = f.X[CH2O]
     maxIndex = np.arange(0, len(X_CH2O))[X_CH2O == max(X_CH2O)][0];
+    maxIndex2 = X_CH2O.argmax()
+    assert maxIndex == maxIndex2
 #     startingIndex = np.arange(0, len(X_CH2O))[X_CH2O >= X_CH2O[0] + 5][0]
     startingIndex = maxIndex; 
     #     startingIndex = np.arange(0, len(f.heat_release_rate))[f.heat_release_rate == max(f.heat_release_rate)][0]
@@ -347,7 +349,7 @@ def get_tauHot(timeSeries, out_df, dT = 200): ## REMEMBER TO CHECK UNITS!!!
     # print(f"T_max = {T_max:.2f} K;\nIgnition delay based on OH conc: {tau_hot_start/1e-3} ms")
     overshoot_value = T_max - T_final
     overshoot = overshoot_value > 15
-    max_ind = timeSeries['T'].idxmax()
+    max_ind = timeSeries['T'].values.argmax()
     if overshoot:
         # print(f"Overshoot by: {T_max - out_df['T']:.2f} K")
         # find temperature after peak where T = T_max - dT
@@ -444,7 +446,7 @@ def get_Da(timeSeries, out_df, P=25*101325):
     # end_ind = int(end_state.index.values[0]) if int(end_state.index.values[0]) <= start_ind else start_ind
     dNO_dt_post_ign = dNO_dt.iloc[start_ind:]
     max_dNO_dt = max(dNO_dt_post_ign)
-    dNO_dt_post_max = dNO_dt.iloc[dNO_dt_post_ign.idxmax():]
+    dNO_dt_post_max = dNO_dt.iloc[dNO_dt_post_ign.values.argmax():]
     perc_max = 0.25
     result_list = dNO_dt_post_max[dNO_dt_post_max <= perc_max*max_dNO_dt]
     # pdb.set_trace()
