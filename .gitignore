@@ -15,6 +15,17 @@ __pycache__/BatchPaSR.cpython-36.pyc
 .vscode/settings.json
 __pycache__/CanteraTools.cpython-36.pyc
 
-*.pyc
-__pycache__/*
+__pycache__/
 __pycache__/CanteraTools.cpython-36.pyc
+
+*.log
+
+*.pot
+
+*.pyc
+
+*/*/*/__pycache__/
+
+*/*/__pycache__/
+
+*/__pycache__/
