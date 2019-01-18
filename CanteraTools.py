@@ -469,7 +469,7 @@ def get_Da(timeSeries, out_df, P=25*101325):
     # print(f"{tau_hot:.2f}, {tau_NOx_NO:.2f}, {Da:.2f}, {tau_hot_start/1e-3:.2f}, {tau_hot_end/1e-3:.2f}")
     return tau_hot, tau_NOx_NO, Da, tau_hot_start/1e-3, tau_hot_end/1e-3
 
-def get_Da_TempDrop(timeSeries, out_df, P=25*101325):
+def get_concNO(timeSeries, P):
     eps = 0.0001*1e-3
     R_universal = 8.3144598; # J/mol-K or m3-Pa/mol-K
     M = (P/R_universal)/timeSeries['T'] # units of moles/volume
@@ -480,10 +480,18 @@ def get_Da_TempDrop(timeSeries, out_df, P=25*101325):
     conc_NO = M*X_NO; 
     d_XNO = X_NO.diff()
     d_XNO_dt = d_XNO/dt
-    dNO_dt = (X_NO*dM_dt) + (M*d_XNO_dt)
+    dNO_dt = (X_NO*dM_dt) + (M*d_XNO_dt) 
+    timeSeries['M'] = M
+    timeSeries['conc_NO'] = conc_NO
+    timeSeries['dNO_dt'] = dNO_dt
+    timeSeries['dt'] = dt
+    return timeSeries   
 
-    tau_NOx_column = M/dNO_dt
-    tau_NOx_NO_column = conc_NO/dNO_dt    
+def get_Da_TempDrop(timeSeries, out_df, P=25*101325):
+    timeSeries = get_concNO(timeSeries, P)
+
+    tau_NOx_column = M/timeSeries['dNO_dt']
+    tau_NOx_NO_column = timeSeries['conc_NO']/timeSeries['dNO_dt']
     
     # ign_state = timeSeries[(timeSeries['age'] >= tau_hot_start - eps) & (timeSeries['age'] <= tau_hot_start + eps)] # system state at ignition
     # end_state = timeSeries[(timeSeries['age'] >= tau_hot_end - eps) & (timeSeries['age'] <= tau_hot_end + eps)] # system "end" state
@@ -514,6 +522,20 @@ def get_Da_TempDrop(timeSeries, out_df, P=25*101325):
     Da = tau_hot/tau_NOx_NO
     # print(f"{tau_hot:.2f}, {tau_NOx_NO:.2f}, {Da:.2f}, {tau_hot_start/1e-3:.2f}, {tau_hot_end/1e-3:.2f}")
     return tau_hot, tau_NOx_NO, Da, tau_hot_start/1e-3, tau_hot_end/1e-3
+
+def get_avg_dNO(timeSeries, out_df, P = 25*101325): 
+    timeSeries = get_concNO(timeSeries, P)    
+    if isinstance(out_df, pd.DataFrame) and len(out_df) > 1:
+        out_df = out_df.iloc[0]
+    if isinstance(out_df, pd.Series):
+        out_df = out_df.to_frame()
+    if out_df.shape[1] == 1:
+        out_df = out_df.T
+    timeSeries_postIgn = timeSeries[(timeSeries['age'] >= out_df['tau_ign_OH'].values[0]) & (timeSeries['age'] <= out_df['tau_sec_required'].values[0]*1e-3)]    
+    dNO = sum(timeSeries_postIgn['dNO_dt']*timeSeries_postIgn['dt'])
+    avg_dNO = np.mean(dNO)
+    return dNO, avg_dNO
+
 
 def get_tempArea(timeSeries, out_df):
     if isinstance(out_df, pd.DataFrame) and len(out_df) > 1:
