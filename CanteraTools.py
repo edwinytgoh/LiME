@@ -550,7 +550,7 @@ def get_tempArea(timeSeries, out_df):
     timeSeries_postIgn = timeSeries[(timeSeries['age'] >= out_df['tau_ign_OH'].values[0]) & (timeSeries['age'] <= out_df['tau_sec_required'].values[0]*1e-3)]
     T_final = timeSeries['T'].iloc[-1] # assume final temperature = our desired temperature
     
-    timeSeries_postIgn['T_frac'] = np.exp(T_max/timeSeries_postIgn['T'])
+    timeSeries_postIgn['T_frac'] = np.exp(-(T_max-timeSeries_postIgn['T'])/T_final)
 
     weighted_time = sum(timeSeries_postIgn['T_frac']*timeSeries_postIgn['dt'])
     assert weighted_time >= 0, "time must be positive... Something is wrong..."
