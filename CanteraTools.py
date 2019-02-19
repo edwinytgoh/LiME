@@ -5,8 +5,8 @@ import time
 import pdb 
 from argparse import ArgumentParser
 import os.path
-import pyarrow.parquet as pq 
-import pyarrow as pa
+# import pyarrow.parquet as pq 
+# import pyarrow as pa
 import multiprocessing
 
 milliseconds = 0.001 # seconds 
@@ -208,8 +208,8 @@ def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="g
     # filename = '{0}_{1}-{2}_{3}-{4}_{5}'.format('phi_main', phi_main, 'P', P, )
     filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main);
     if os.path.isfile(filename):
-            table = pq.read_table(filename, nthreads=5)
-            mainBurnerDF = table.to_pandas()
+            mainBurnerDF = pd.read_parquet(filename)
+            # mainBurnerDF = table.to_pandas()
             flameTime = mainBurnerDF.index.values;
     else:
         flame, flameTime = runFlame(flameGas, slope=slope, curve=curve)
@@ -220,19 +220,22 @@ def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="g
         mainBurnerDF = pd.DataFrame(data=flameData.transpose(), index=flameTime, columns=columnNames)
         mainBurnerDF.index.name = 'Time'
         mainBurnerDF['P'] = flame.P;
-        table = pa.Table.from_pandas(mainBurnerDF);
-        pq.write_table(table, filename);
+        # table = pa.Table.from_pandas(mainBurnerDF);
+        # pq.write_table(table, filename);
+        mainBurnerDF.to_parquet(filename, compression='gzip')
         
     vitiatedProd, flameCutoffIndex, mainBurnerDF = getStateAtTime(mainBurnerDF, flameTime, tau_main)
     vitReactor = ct.ConstPressureReactor(vitiatedProd)
     return vitReactor, mainBurnerDF
 
 def dataFrame_to_pyarrow(df, filename):
-    pq.write_table(pa.Table.from_pandas(df), filename)
+    # pq.write_table(pa.Table.from_pandas(df), filename)
+    df.to_parquet(filename, compression='gzip')
 
 def pyarrow_to_dataFrame(filename):
-    table = pq.read_table(filename, nthreads=4)
-    df = table.to_pandas()
+    # table = pq.read_table(filename, nthreads=4)
+    # df = table.to_pandas()
+    df = pd.read_parquet(filename)
     return df
 
 def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None,T_fuel=300,T_ox=650,P=25, mech="gri30.xml",trace=False):
