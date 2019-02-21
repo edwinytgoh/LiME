@@ -103,7 +103,7 @@ def get_equivalence_ratio(gas, oxidizers = [], ignore = []):
 
 # Defining run cases here
 def main():
-    milliseconds = 1e-3
+    milliseconds =np 1e-3
     tau_ent_cf = np.array([0.1, 0.2, 0.5, 1, 2, 3])*milliseconds
     tau_ent_sec = np.array([0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 3.0])*milliseconds
     

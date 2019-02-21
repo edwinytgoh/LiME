@@ -2,76 +2,78 @@
 #gri vs klippenstien comparison of ignition times based on OH
 # 25 atm, 1 atm, 10 atm
 #range of phis (.5,.65,.75,1,5,200)
+#temp; 300K, 591K
+#edited from, as per cantera 2.40
 #https://cantera.org/examples/jupyter/reactors/batch_reactor_ignition_delay_NTC.ipynb.html
 
-from __future__ import division
-from __future__ import print_function
 
-import pandas as pd
 import numpy as np
-
+import matplotlib.pyplot as plt
 import time
-
 import cantera as ct
-print('Runnning Cantera version: ' + ct.__version__)
 
-gas = ct.Solution('gri30.xml')
+# Define the ignition delay time (IDT). This function computes the ignition
+# delay from the occurrence of the peak concentration for the specified
+# species.
+def ignitionDelay(states, species):
+    i_ign = states(species).Y.argmax()
+    return states.t[i_ign]
 
-# Define the reactor temperature and pressure
-reactorTemperature = 1000 #Kelvin
-reactorPressure = 1*101325.0 #Pascals
+def runcase(ctSol, reactorT, reactorP, phicase):
 
-gas.TP = reactorTemperature, reactorPressure
+    # Define the reactor temperature and pressure
+    gas = ct.Solution(ctSol)
+    reactorTemperature = reactorT #in Kelvin
+    reactorPressure = reactorP*101325 #in atm
+    gas.TP = reactorTemperature, reactorPressure
+    # Define the fuel, oxidizer and set the stoichiometry
+    gas.set_equivalence_ratio(phi = phicase, fuel = 'ch4', oxidier={'02':1.0, 'n2':3.76})
+    #creating reactor
+    r = ct.Reactor(contents = gas)
+    reactorNetwork = ct.ReactorNet([r])
+    timeHistory = ct.SolutionArray(gas,extra=['t'])
 
-# Define the fuel, oxidizer and set the stoichiometry
-gas.set_equivalence_ratio(phi=1.0, fuel='nc7h16', oxidizer={'o2':1.0, 'n2':3.76})
+    t0 = time.time()
 
-# Create a batch reactor object and add it to a reactor network
-# In this example, the batch reactor will be the only reactor
-# in the network
-r = ct.IdealGasReactor(contents=gas, name='Batch Reactor')
-reactorNetwork = ct.ReactorNet([r])
+    estimatedIgnitionDelayTime = 1.0
+    t=0
 
-# now compile a list of all variables for which we will store data
-stateVariableNames = [r.component_name(item) for item in range(r.n_vars)]
+    counter = 1
+    while(t< estimatedIgnitionDelayTime):
+        t = reactorNetwork.step()
+        if(counter%10==0):
+            timeHistory.append(r.thermo.state,t=t)
+        counter+=1
+    
+    tau_ig = ignitionDelay(timeHistory, 'oh')
 
-# use the above list to create a DataFrame
-timeHistory = pd.DataFrame(columns=stateVariableNames)
+    t1 = time.time()
+    print('Computed Ignition Delay: {:.3e} seconds. Took {:3.2f}s to compute'.format(tau_ig, t1-t0))
+    plt.rcParams['axes.labelsize'] = 18
+    plt.rcParams['xtick.labelsize'] = 12
+    plt.rcParams['ytick.labelsize'] = 12
+    plt.rcParams['figure.autolayout'] = True
 
-def ignitionDelay(df, species):
-    """
-    This function computes the ignition delay from the occurence of the
-    peak in species' concentration.
-    """
-    return df[species].argmax()
+    plt.style.use('ggplot')
+    plt.style.use('seaborn-pastel')
 
+    plt.figure()
+    plt.plot(timeHistory.index, timeHistory['oh'],'-o')
+    plt.xlabel('Time (s)')
+    plt.ylabel('$Y_{OH}$')
 
+    plt.xlim([0,0.05])
+    plt.arrow(0, 0.008, tau_ig, 0, width=0.0001, head_width=0.0005,
+            head_length=0.001, length_includes_head=True, color='r', shape='full')
+    plt.annotate(r'$Ignition Delay: \tau_{ign}$', xy=(0,0), xytext=(0.01, 0.0082), fontsize=16)
+    plt.show()
 
-#Tic
-t0 = time.time()
+    return tau_ig
 
-# This is a starting estimate. If you do not get an ignition within this time, increase it
-estimatedIgnitionDelayTime = 0.1
-t = 0
-
-counter = 1;
-while(t < estimatedIgnitionDelayTime):
-    t = reactorNetwork.step()
-    if (counter%10 == 0):
-        # We will save only every 10th value. Otherwise, this takes too long
-        # Note that the species concentrations are mass fractions
-        timeHistory.loc[t] = reactorNetwork.get_state()
-    counter+=1
-
-# We will use the 'oh' species to compute the ignition delay
-tau = ignitionDelay(timeHistory, 'oh')
-
-#Toc
-t1 = time.time()
-
-print('Computed Ignition Delay: {:.3e} seconds. Took {:3.2f}s to compute'.format(tau, t1-t0))
-
-# If you want to save all the data - molefractions, temperature, pressure, etc
-# uncomment the next line
-# timeHistory.to_csv("time_history.csv")
-
+def main():
+    ctSol = 'gri30.xml'
+    reactorT = 300
+    reactorP = 1
+    phicase = 0.5
+    (tau_ig) = runcase(ctSol,reactorT,reactorP,phicase)
+    print(tau_ig)
