@@ -27,11 +27,13 @@ def runcase(ctSol, reactorT, reactorP, phicase):
     reactorPressure = reactorP*101325 #in atm
     gas.TP = reactorTemperature, reactorPressure
     # Define the fuel, oxidizer and set the stoichiometry
-    gas.set_equivalence_ratio(phi = phicase, fuel = 'ch4', oxidier={'02':1.0, 'n2':3.76})
+    #gas.set_equivalence_ratio(phi=phicase, fuel='CH4', oxidier={'02':1.0, 'N2':3.76})
+    gas.set_equivalence_ratio(phi=1.0, fuel='CH4',
+                              oxidizer={'o2':1.0, 'n2':3.76})
     #creating reactor
     r = ct.Reactor(contents = gas)
     reactorNetwork = ct.ReactorNet([r])
-    timeHistory = ct.SolutionArray(gas,extra=['t'])
+    timeHistory = ct.SolutionArray(gas, extra=['t'])
 
     t0 = time.time()
 
@@ -44,7 +46,7 @@ def runcase(ctSol, reactorT, reactorP, phicase):
         if(counter%10==0):
             timeHistory.append(r.thermo.state,t=t)
         counter+=1
-    
+    print(timeHistory('oh'))
     tau_ig = ignitionDelay(timeHistory, 'oh')
 
     t1 = time.time()
@@ -71,9 +73,12 @@ def runcase(ctSol, reactorT, reactorP, phicase):
     return tau_ig
 
 def main():
-    ctSol = 'gri30.xml'
+    ctSol = 'Klippenstein.cti'
     reactorT = 300
     reactorP = 1
     phicase = 0.5
     (tau_ig) = runcase(ctSol,reactorT,reactorP,phicase)
     print(tau_ig)
+
+if __name__ == "__main__":
+    main()
