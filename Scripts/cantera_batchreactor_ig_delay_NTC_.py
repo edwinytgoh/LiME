@@ -6,7 +6,7 @@
 #https://cantera.org/examples/jupyter/reactors/batch_reactor_ignition_delay_NTC.ipynb.html
 
 import sys
-sys.path.append("..")
+sys.path.append("../")
 from CanteraTools import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,20 +20,20 @@ ms = 0.001 #miliseconds
 def ignitionDelay(states, species):
     return states[species].idxmax()
 
-def getMixtureTemp(phicase,ctSol):
-    [vit_reactor, main_burner_DF] = runMainBurner(0.3719, 19.842*ms,mech=ctSol)
-    [mfm, mam, mfs, mas] = solvePhi_airSplit(phicase, 0.3719, 100, 1)
+def getMixtureTemp(phicase,mech):
+    [vit_reactor, main_burner_DF] = runMainBurner(0.3719, 19.842*ms,mech=mech)
+    [mfm, mam, mfs, mas] = solvePhi_airSplit(0.675, 0.3719, 100, 1)
     main_mass = mfm + mam
     jet_mass = mfs + mas
     secondaryGas = ct.Solution('gri30.xml')
     secondaryGas.TPX = 300,1,{'CH4':1} 
-    mixergas = mix([vit_reactor.thermo,secondaryGas],[main_mass, jet_mass], mech=ctSol)
+    mixergas = mix([vit_reactor.thermo,secondaryGas],[main_mass, jet_mass], mech=mech)
     return mixergas.T
 
-def runcase(ctSol, reactorT, reactorP, phicase):
+def runcase(mech, reactorT, reactorP, phicase):
 
     # Define the reactor temperature and pressure
-    gas = ct.Solution(ctSol)
+    gas = ct.Solution(mech)
     reactorTemperature = reactorT #in Kelvin
     reactorPressure = reactorP*101325 #in atm
     gas.TP = reactorTemperature, reactorPressure
@@ -53,10 +53,8 @@ def runcase(ctSol, reactorT, reactorP, phicase):
 
     t0 = time.time()
 
-    estimatedIgnitionDelayTime = 5000.0*ms
-    t = np.arange(0,estimatedIgnitionDelayTime,1*ms)
-    
-
+    estimatedIgnitionDelayTime = 1
+    t = np.arange(0,estimatedIgnitionDelayTime,0.1*ms)
     
     for i in range(len(t)):
         tnow = t[i]
@@ -64,7 +62,7 @@ def runcase(ctSol, reactorT, reactorP, phicase):
         timeHistory.loc[tnow] = reactorNetwork.get_state()
     #print(timeHistory['OH'])
 
-    tau_ig = ignitionDelay(timeHistory,'OH')
+    tau_ig = timeHistory['OH'].idxmax()
 
     t1 = time.time()
     runtime = t1-t0
@@ -92,22 +90,51 @@ def runcase(ctSol, reactorT, reactorP, phicase):
 
 def main():
     ct.suppress_thermo_warnings()
-    ctSol = ('gri30.cti' ,'Klippenstein.cti') 
+    mech = ('gri30.cti' ,'Klippenstein.cti') 
     reactorP = (1,10,25)
     phicase = (.5,.65,.75,1,5,200)
     lengthy = len(reactorP)*len(phicase)
-    for x in range(len(ctSol)):
+    for x in range(len(mech)):
         counter = 0
         dataarray = np.zeros((lengthy,5))
         for y in range(len(reactorP)):
             for z in range(len(phicase)):
-                reactorT = getMixtureTemp(phicase[z],ctSol[x])
+                reactorT = getMixtureTemp(phicase[z],mech[x])
                 #print(reactorT)
                 #print(phicase[z])
-                (tau_ig,runtime) = runcase(ctSol[x],reactorT,reactorP[y],phicase[z])
+                (tau_ig,runtime) = runcase(mech[x],reactorT,reactorP[y],phicase[z])
                 dataarray[counter,:] = [reactorT,reactorP[y],phicase[z],tau_ig,runtime]
                 counter+=1
         pd.DataFrame(dataarray).to_csv('ignitionDelay%s.csv' %(str(x)),header=None,index=None)
 # note that the calculated time is Ignition Delay only, not the Main Burner runtime;
+
+def main_edwin(): 
+    ct.suppress_thermo_warnings()
+    T_list = np.linspace(800,1600,10); 
+    tau_ign_gri_list = [None]*len(T_list)
+    runtime_gri_list = [None]*len(T_list)
+    tau_ign_klip_list = [None]*len(T_list)
+    runtime_klip_list = [None]*len(T_list)
+    gas_gri = ct.Solution("gri30.xml"); 
+    gas_klip = ct.Solution("Klippenstein.cti"); 
+    for i,T in enumerate(T_list): 
+        tau_ign_gri_list[i], runtime_gri_list[i] = runcase("gri30.xml", T, 25, 0.6)
+        print(f"Done running GRI case T = {T:.3f} K. Time taken = {runtime_gri_list[i]:.3f} seconds");
+        
+        tau_ign_klip_list[i], runtime_klip_list[i] = runcase("Klippenstein.cti", T, 25, 0.6)
+        print(f"Done running Klippenstein case T = {T:.3f} K. Time taken = {runtime_klip_list[i]:.3f} seconds");
+
+    fig = plt.figure();
+    ax1 = fig.add_subplot(221)
+    ax2 = fig.add_subplot(222)
+    ax3 = fig.add_subplot(223)
+    ax4 = fig.add_subplot(224)
+
+    ax1.plot(T_list,tau_ign_gri_list)
+    ax2.plot(T_list, runtime_gri_list)
+    ax3.plot(T_list,tau_ign_klip_list)
+    ax4.plot(T_list, runtime_klip_list)
+    plt.show()
+
 if __name__ == "__main__":
-    main()
+    main_edwin()
