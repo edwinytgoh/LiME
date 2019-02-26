@@ -1,4 +1,3 @@
-#notes
 #gri vs klippenstien comparison of ignition times based on OH
 # 25 atm, 1 atm, 10 atm
 #range of phis (.5,.65,.75,1,5,200)
@@ -39,7 +38,6 @@ def runcase(mech, reactorT, reactorP, phicase):
     gas.TP = reactorTemperature, reactorPressure
 
     # Define the fuel, oxidizer and set the stoichiometry
-    #gas.set_equivalence_ratio(phi=phicase, fuel='CH4', oxidier={'02':1.0, 'N2':3.76})
     gas.set_equivalence_ratio(phi=phicase, fuel='CH4',
                               oxidizer={'o2':1.0, 'n2':3.76})
     #creating reactor
@@ -53,8 +51,8 @@ def runcase(mech, reactorT, reactorP, phicase):
 
     t0 = time.time()
 
-    estimatedIgnitionDelayTime = 1
-    t = np.arange(0,estimatedIgnitionDelayTime,0.1*ms)
+    estimatedIgnitionDelayTime = 2.5*ms
+    t = np.arange(0,estimatedIgnitionDelayTime,.001*ms)
     
     for i in range(len(t)):
         tnow = t[i]
@@ -87,19 +85,20 @@ def runcase(mech, reactorT, reactorP, phicase):
     # plt.show()
 
     return tau_ig,runtime
-
+#used for the case of multiple temperatures, phis, and other iterative things
 def main():
     ct.suppress_thermo_warnings()
     mech = ('gri30.cti' ,'Klippenstein.cti') 
-    reactorP = (1,10,25)
+    reactorP = (1,10,25) #in atm
     phicase = (.5,.65,.75,1,5,200)
     lengthy = len(reactorP)*len(phicase)
+    reactorT = 1600 #in Kelvin
     for x in range(len(mech)):
         counter = 0
         dataarray = np.zeros((lengthy,5))
         for y in range(len(reactorP)):
             for z in range(len(phicase)):
-                reactorT = getMixtureTemp(phicase[z],mech[x])
+                #reactorT = getMixtureTemp(phicase[z],mech[x])
                 #print(reactorT)
                 #print(phicase[z])
                 (tau_ig,runtime) = runcase(mech[x],reactorT,reactorP[y],phicase[z])
@@ -108,33 +107,48 @@ def main():
         pd.DataFrame(dataarray).to_csv('ignitionDelay%s.csv' %(str(x)),header=None,index=None)
 # note that the calculated time is Ignition Delay only, not the Main Burner runtime;
 
-def main_edwin(): 
-    ct.suppress_thermo_warnings()
-    T_list = np.linspace(800,1600,10); 
-    tau_ign_gri_list = [None]*len(T_list)
-    runtime_gri_list = [None]*len(T_list)
-    tau_ign_klip_list = [None]*len(T_list)
-    runtime_klip_list = [None]*len(T_list)
-    gas_gri = ct.Solution("gri30.xml"); 
-    gas_klip = ct.Solution("Klippenstein.cti"); 
-    for i,T in enumerate(T_list): 
-        tau_ign_gri_list[i], runtime_gri_list[i] = runcase("gri30.xml", T, 25, 0.6)
-        print(f"Done running GRI case T = {T:.3f} K. Time taken = {runtime_gri_list[i]:.3f} seconds");
-        
-        tau_ign_klip_list[i], runtime_klip_list[i] = runcase("Klippenstein.cti", T, 25, 0.6)
-        print(f"Done running Klippenstein case T = {T:.3f} K. Time taken = {runtime_klip_list[i]:.3f} seconds");
+# def main_edwin(): 
+#     ct.suppress_thermo_warnings()
+#     T_list = np.linspace(800,1000,4); 
+#     tau_ign_gri_list = [None]*len(T_list)
+#     runtime_gri_list = [None]*len(T_list)
+#     tau_ign_klip_list = [None]*len(T_list)
+#     runtime_klip_list = [None]*len(T_list)
+#     gas_gri = ct.Solution("gri30.xml"); 
+#     gas_klip = ct.Solution("Klippenstein.cti"); 
+#     dataarrayg = np.zeros((len(T_list),3))
+#     dataarrayi = np.zeros((len(T_list),3))
+#     counter = 0
+#     for i,T in enumerate(T_list):
+#         tau_ign_gri_list[i], runtime_gri_list[i] = runcase("gri30.xml", T, 25, 0.6)
+#         print(f"Done running GRI case T = {T:.3f} K. Time taken = {runtime_gri_list[i]:.3f} seconds");
+#         dataarrayg[counter,:] = [T_list[i],tau_ign_gri_list[i], runtime_gri_list[i]]
+#         tau_ign_klip_list[i], runtime_klip_list[i] = runcase("Klippenstein.cti", T, 25, 0.6)
+#         print(f"Done running Klippenstein case T = {T:.3f} K. Time taken = {runtime_klip_list[i]:.3f} seconds");
+#         dataarrayi[counter,:] = [T_list[i],tau_ign_klip_list[i], runtime_klip_list[i]]
+#         counter += 1
+#     pd.DataFrame(dataarrayg).to_csv('ignitionDelayGri.csv')
+#     pd.DataFrame(dataarrayi).to_csv('ignitionDelayKlip.csv')
+    # fig = plt.figure();
+    # ax1 = fig.add_subplot(221)
+    # ax2 = fig.add_subplot(222)
+    # ax3 = fig.add_subplot(223)
+    # ax4 = fig.add_subplot(224)
 
-    fig = plt.figure();
-    ax1 = fig.add_subplot(221)
-    ax2 = fig.add_subplot(222)
-    ax3 = fig.add_subplot(223)
-    ax4 = fig.add_subplot(224)
+    # ax1.plot(T_list,tau_ign_gri_list)
+    # ax2.plot(T_list, runtime_gri_list)
+    # ax3.plot(T_list,tau_ign_klip_list)
+    # ax4.plot(T_list, runtime_klip_list)
+    # plt.show()
 
-    ax1.plot(T_list,tau_ign_gri_list)
-    ax2.plot(T_list, runtime_gri_list)
-    ax3.plot(T_list,tau_ign_klip_list)
-    ax4.plot(T_list, runtime_klip_list)
-    plt.show()
+# if __name__ == "__main__":
+#     main_edwin() #head_width=0.0005,
+    #         head_length=0.001, length_includes_head=True, color='r', shape='full')
+    # plt.annotate(r'$Ignition Delay: \tau_{ign}$', xy=(0,0), xytext=(0.01, 0.0082), fontsize=16)
+    #plt.show()
+
+    #return tau_ig,runtime
+
 
 if __name__ == "__main__":
-    main_edwin()
+    main()
