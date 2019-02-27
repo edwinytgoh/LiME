@@ -1,406 +1,36 @@
-import cantera as ct 
-import numpy as np 
-import pandas as pd
-import time 
-import matplotlib.pyplot as plt 
-import pdb 
-from argparse import ArgumentParser
-import os.path
-import pyarrow.parquet as pq 
-import pyarrow as pa
+import itertools
 import multiprocessing
-from pathos.multiprocessing import ProcessingPool
+import os
+import os.path
+import pdb
+import time
+from argparse import ArgumentParser
+
+import cantera as ct
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+import pyarrow as pa
+import pyarrow.parquet as pq
 from CanteraTools import *
+from Particle import Particle
+from pathos.multiprocessing import ProcessingPool
 
-class Particle(object):
-    """Class for particle in BatchPaSR.
-    """
-    gas_template = None
-    
-    @classmethod
-    def fromGas(cls, gas, particle_mass = 1.0, chemistry = True):
-        """Initialize particle object with thermochemical state.
-        
-        Parameters
-        ----------
-        gas : `cantera.Solution`
-            Initial thermochemical state of particle
-        
-        particle_mass : `float`
-            Particle mass
-        
-        Returns
-        -------
-        cls : `Particle`
-            Instance of the Particle class
-        """ 
-        if Particle.gas_template == None:
-            Particle.gas_template = ct.Solution(gas.name + ".xml")
-        return cls(np.hstack([gas.T, gas.P, gas.X]), particle_mass, gas.name + ".xml", chemistry)
-    
-    def __init__(self, state, particle_mass = 1.0, mech='gri30.xml', chemistry = True):
-        """Initialize particle object with thermochemical state.
+multiprocessing.set_start_method("spawn")
 
-        Parameters
-        ----------
-        
-        state : `numpy array or list`
-            Initial thermochemical state of particle. Needs T, P, X. 
-        
-        gas : `cantera.Solution`
-            Initial thermochemical state of particle
-        
-        particle_mass : `float`
-            Particle mass
-
-            
-        
-        Returns
-        -------
-        None
-
-        """
-        if Particle.gas_template == None:
-            Particle.gas_template = ct.Solution(mech)        
-        self.mech = mech
-        self.P = state[1]
-        Particle.gas_template.TPX = [state[0], state[1], state[2:]]
-        self.column_names = ['age', 'T', 'MW', 'h', 'phi', 'mass'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
-        self.mass = particle_mass
-        self.age = 0
-        self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
-        self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist()]
-        self.timeHistory_array = None
-        self.chemistry_enabled = chemistry
-    
-    def __call__(self, comp=None):
-        """Return or set composition.
-        Parameters
-        ----------
-        comp : Optional[cantera.Solution]
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if comp is not None:
-            if isinstance(comp, Particle):
-                h = comp.gas.enthalpy_mass
-                Y = comp.gas.Y
-            elif isinstance(comp, np.ndarray):
-                h = comp[0]
-                Y = comp[1:]
-            elif isinstance(comp, ct.Solution):
-                h = comp.enthalpy_mass
-                Y = comp.Y
-            else:
-                return NotImplemented
-            self.state[0] = h
-            self.state[1:] = Y
-        else:
-            return self.state
-   
-    def __add__(self, other):
-        """Add values to state of particle without changing the state of either particle.
-
-        Parameters
-        ----------
-        other : `Particle`, `numpy.array`, `int`, `float`
-            Thermochemical state (enthalpy + mass fractions) to add to current state.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, Particle):
-            return self.state + other.state
-        elif isinstance(other, np.ndarray):
-            return self.state + other
-        elif isinstance(other, (int, float)):
-            return self.state + other
-        else:
-            return NotImplemented
-
-    def __radd__(self, other):
-        """Add values to state of particle without changing the state of either particle.
-
-        Parameters
-        ----------
-        other : `Particle`, `numpy.array`, `int`, `float`
-            Thermochemical state (enthalpy + mass fractions) to add to current state.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, Particle):
-            return self.state + other.state
-        elif isinstance(other, np.ndarray):
-            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))            
-            return self.state + other
-        elif isinstance(other, (int, float)):
-            return self.state + other
-        else:
-            return NotImplemented
-
-    def __sub__(self, other):
-        """Subtract values from state of particle.
-
-        Parameters
-        ----------
-        other : `Particle`, `numpy.array`, `int`, `float`
-            Thermochemical state (enthalpy + mass fractions) to subtract from current state.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, Particle):
-            return self.state - other.state
-        elif isinstance(other, np.ndarray):
-            return self.state - other
-        elif isinstance(other, (int, float)):
-            return self.state - other
-        else:
-            return NotImplemented
-
-    def __rsub__(self, other):
-        """Subtract state of particle from input state without changing the state of either particle.
-
-        Parameters
-        ----------
-        other : `Particle`, `numpy.array`, `int`, `float`
-            Thermochemical state from which to subract Particle state.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, Particle):
-            return other.state - self.state
-        elif isinstance(other, np.ndarray):
-            return other - self.state
-        elif isinstance(other, (int, float)):
-            h = other - self.state[0]
-            Y = other - self.state[1:]
-            return np.hstack((h, Y))
-        else:
-            return NotImplemented
-
-    def __mul__(self, other):
-        """Multiply state of particle by value.
-
-        Parameters
-        ----------
-        other : `int`, `float`
-            Value to multiply `Particle` state by.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, (int, float)):
-            return self.state * other
-        else:
-            return NotImplemented
-
-    def __rmul__(self, other):
-        """Multiply state of particle by value.
-
-        Parameters
-        ----------
-        other : `int`, `float`
-            Value to multiply `Particle` state by.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, (int, float)):
-            return self.state * other
-        else:
-            return NotImplemented
-
-    def __iadd__(self, other):
-        """Add values to state of particle, modifying the state itself.
-
-        Parameters
-        ----------
-        other : `Particle`, `numpy.array`, `int`, `float`
-            Thermochemical state (enthalpy + mass fractions) to add to current state.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, Particle):
-            # TODO: CHECK THIS!!!!
-            h = (self.mass*self.state[0] + other.mass*other.state[0])/(self.mass + other.mass)
-            Y = (self.mass*self.state[1:] + other.mass*other.state[1:])/(self.mass + other.mass)
-            self.mass += other.mass
-        elif isinstance(other, np.ndarray):
-            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))
-            h = self.state[0] + other[0]
-            Y = self.state[1:] + other[1:]
-        elif isinstance(other, (int, float)):
-            h = self.state[0] + other
-            Y = self.state[1:] + other
-        else:
-            return NotImplemented
-        self.state[0] = h
-        self.state[1:] = Y
-        return self
-
-    def __isub__(self, other):
-        """Subtract values from state of particle, modifying the particle itself.
-
-        Parameters
-        ----------
-        other : `Particle`, `numpy.array`, `int`, `float`
-            Thermochemical state (enthalpy + mass fractions) to subtract from current state.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, Particle):
-            h = self.state[0] - other.state[0]
-            Y = self.state[1:] - other.state[1:]
-        elif isinstance(other, np.ndarray):
-            assert len(other) == len(self.state) , "Please ensure that input array has the same length as current particle state array ({0.d})".format(len(self.state))
-            h = self.state[0] - other[0]
-            Y = self.state[1:] - other[1:]
-        elif isinstance(other, (int, float)):
-            h = self.state[0] - other
-            Y = self.state[1:] - other
-        else:
-            return NotImplemented
-        self.state[0] = h
-        self.state[1:] = Y
-        return self
-
-    def __imul__(self, other):
-        """Multiply state of particle by value, modifying the particle itself.
-
-        Parameters
-        ----------
-        other : `int`, `float`
-            Value to multiply `Particle` state by.
-
-        Returns
-        -------
-        comp : numpy.array
-            Thermochemical composition of particle (enthalpy + mass fractions).
-
-        """
-        if isinstance(other, (int, float)):
-            self.state *= other
-            return self
-        else:
-            return NotImplemented
-        
-    def react(self, dt):
-        """Perform reaction timestep by advancing network.
-
-        Parameters
-        ----------
-        dt : float
-            Reaction timestep [seconds]
-
-        Returns
-        -------
-        None
-
-        """
-        Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
-        # self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())        
-        reac = ct.ConstPressureReactor(Particle.gas_template,
-            volume= self.mass/Particle.gas_template.density)
-        reac.chemistry_enabled = self.chemistry_enabled
-        netw = ct.ReactorNet([reac])
-        netw.advance(dt)
-        self.age += dt
-        #         self.timeHistory_list = [[self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio()] + Particle.gas_template.Y.tolist() + Particle.gas.X.tolist()]        
-        self.timeHistory_list.append([self.age, Particle.gas_template.T, Particle.gas_template.mean_molecular_weight, Particle.gas_template.enthalpy_mass, Particle.gas_template.get_equivalence_ratio(), self.mass] + Particle.gas_template.Y.tolist() + Particle.gas_template.X.tolist())
-        self.state = np.hstack((Particle.gas_template.enthalpy_mass, Particle.gas_template.Y))
-
-    def get_timeHistory(self, timeOffset=0, dataFrame=False):
-        """Obtain particle's history. 
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        timeHistory_array : `numpy.array` 
-            The array containing particle property time traces 
-        """
-        self.timeHistory_array = np.vstack(self.timeHistory_list)
-        if timeOffset > 0:
-            self.timeHistory_array[:,0] += timeOffset
-        if dataFrame == True:
-            df = pd.DataFrame(columns = self.column_names, data = self.timeHistory_array)
-            df.set_index(['age'])
-            return df
-        
-        return self.timeHistory_array
-
-    # Custom Equivalence Ratio test
-    def get_global_equivalence_ratio(self, oxidizers = [], ignore = []):
-        Particle.gas_template.HPY = [self.state[0], self.P, self.state[1:]]
-        if not oxidizers:  # Default behavior, find all possible oxidizers
-            oxidizers = [s.name for s in Particle.gas_template.species()] # if
-                        # all(y not in s.composition for y in ['C', 'H', 'S'])]
-            alpha = 0
-            mol_O = 0
-            for k, s in enumerate(Particle.gas_template.species()):
-                if s.name in ignore:
-                    continue
-                else: # elif s.name in oxidizers:
-                    mol_O += s.composition.get('O', 0) * Particle.gas_template.X[k]
-                # else:
-                    nC = s.composition.get('C', 0)
-                    nH = s.composition.get('H', 0)
-                    # nO = s.composition.get('O', 0)
-                    nS = s.composition.get('S', 0)
-
-                    alpha += (2*nC + nH/2 + 2*nS) * Particle.gas_template.X[k]
-
-            if mol_O == 0:
-                return float('inf')
-            else:
-                return alpha / mol_O
-
-        def __getstate__(self):
-            # how to get the state data out of a Particle instance
-            state = self.__dict__.copy()
-            return state
-
-        def __setstate__(self, state):
-            # rebuild a Particle instance from state
-            self.__dict__.update(state)
+NUM_PROCESS = 4
+particles = {}
+gases = {}
+def init_process(mech, P):
+    id = os.getpid()
+    gases[id] = ct.Solution(mech, name=mech[0:-4])
+    gases[id].TPX = 300, P, {"N2":1.0}
+    particles[id] = Particle.fromGas(gases{id})
+    pass
 
 class PaSBR(object):
-    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, coalesce = True):
+    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, coalesce = True, mech = "gri30.xml", parallel = False):
         """Initialize BatchPaSR from a list of Particles
         
         Parameters
@@ -414,7 +44,7 @@ class PaSBR(object):
         
         """ 
         if Particle.gas_template == None:
-            Particle.gas_template = ct.Solution("gri30.xml")
+            Particle.gas_template = ct.Solution(mech)
         self.column_names = ['age', 'mass', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
         self.particle_list = particle_list
         self.N_MAX = N_MAX
@@ -425,12 +55,17 @@ class PaSBR(object):
         self.mass = 0.0
         self.state = 0.0
         self.N = len(self.particle_list)
-        self.mean_gas = ct.Solution(Particle.gas_template.name + ".xml")
+        self.mech = mech
+        # assert Particle.gas_template.name == mech[0:-4] # TODO: makesure mechs match in all objects
+        self.mean_gas = ct.Solution(self.mech)
         self.mean_gas.name = "BatchPaSR Mean Gas"
         self.P = 0.0
         self.timeHistory_list = []
         self.particle_timeHistory_list = []
         self.particle_timeHistory_info = []
+        self.pool = multiprocessing.Pool(processes=NUM_PROCESS, 
+                                        initializer=init_process,
+                                        initargs=(self.mech, self.P))
         if len(particle_list) > 0:
             self.P = particle_list[0].P # NOTE: Assume all particles have same temp
             self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
@@ -464,24 +99,29 @@ class PaSBR(object):
         assert self.N <= self.N_MAX , f"N ({self.N}) > N_MAX ({self.N_MAX}); too many particles"
         self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass, self.mean_gas.get_equivalence_ratio()] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
         
-        
     def insert(self, particle):
         self.particle_list.append(particle)
         self.updateState() # Is the cost of assigning N to a new value (in updateState()) higher than doing N += 1?
     
     @classmethod
-    def reactHelper(cls, particle_dt):
-        particle, dt = particle_dt
+    def reactHelper(cls, inputs):
+        state, dt = inputs
+        particle = particles[os.getpid()]
+        particle.__setstate__(state)
         particle.react(dt)
         return particle.__getstate__()
-        
+
+
     def react(self, parallel=False, coalesce = True):
         if parallel:
-            pool = multiprocessing.Pool(processes=4)
-            jobList = [(p, self.dt) for p in self.particle_list]
-#             states = ProcessingPool().map(BatchPaSR.reactHelper, jobList)
-            states = pool.map(PaSBR.reactHelper, jobList)
-            pool.close()
+            if self.pool == None:
+                self.pool = multiprocessing.Pool(processes=NUM_PROCESS, 
+                                                initializer=init_process,
+                                                initargs=(self.mech, self.P))            
+            current_states = [p.state for p in self.particle_list]
+            helper_input = zip(current_states, itertools.repeat(self.dt))
+            new_states = pool.map(PaSBR.reactHelper, helper_input)
+            [p.__setstate__(new_states[i]) for i,p in enumerate(self.particle_list)]
             [self.particle_list[i].__setstate__(states[i]) for i in range(0, len(self.particle_list))]
         else:
             [p.react(self.dt) for p in self.particle_list]
@@ -733,6 +373,7 @@ class ParticleFlowController(object):
             return self.mass, np.hstack((self.gas.enthalpy_mass, self.gas.Y))
     
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
     gas = ct.Solution("gri30.xml");
     p1 = Particle.fromGas(gas);
     gas()
