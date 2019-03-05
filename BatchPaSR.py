@@ -11,26 +11,52 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-import pyarrow as pa
-import pyarrow.parquet as pq
+# import pyarrow as pa
+# import pyarrow.parquet as pq
 from CanteraTools import *
 from Particle import Particle
-from pathos.multiprocessing import ProcessingPool
+# from pathos.multiprocessing import ProcessingPool
 
-multiprocessing.set_start_method("spawn")
 
-NUM_PROCESS = 4
+
+NUM_PROCESS = 8
 particles = {}
-gases = {}
+
 def init_process(mech, P):
     id = os.getpid()
-    gases[id] = ct.Solution(mech, name=mech[0:-4])
-    gases[id].TPX = 300, P, {"N2":1.0}
-    particles[id] = Particle.fromGas(gases{id})
-    pass
+    print(f"Running init_process on PID = {id}")
+    particles[mech] = Particle(mech, name=mech[0:-4])
+    particles[mech].TPX = 300, P, {"N2":1.0}
 
-class PaSBR(object):
-    def __init__(self, particle_list, N_MAX=10, dt = 0.01e-3, coalesce = True, mech = "gri30.xml", parallel = False):
+class PaSBR(Particle):
+
+    @classmethod
+    def fromGas(cls, gas, mech="", particle_mass = 0.0001, N_MAX=10):
+        """Initialize PaSBR object with thermochemical state.
+        
+        Parameters
+        ----------
+        gas : `cantera.Solution`
+            Initial thermochemical state of particle. 
+            Must have NAME property if using custom mechanism. Use ct.Solution("mech.xml", name="mech")
+        
+        particle_mass : `float`
+            Particle mass
+        
+        Returns
+        -------
+        cls : `Particle`
+            Instance of the Particle class
+        """ 
+        state_vec = gas.state
+        if mech == "":
+            if isinstance(gas, cls):
+                mech = gas.mech
+            else:
+                mech = f"{gas.name}.xml"
+        return cls(infile=mech, state_vec=state_vec, particle_mass=particle_mass, P = gas.P, N_MAX=N_MAX)        
+
+    def __init__(self, infile, particle_list = [], particle_mass=1.0, state_vec=[], P=101325, N_MAX=10, dt = 0.01e-3, coalesce = True, parallel = False, **kwargs):
         """Initialize BatchPaSR from a list of Particles
         
         Parameters
@@ -43,39 +69,36 @@ class PaSBR(object):
         None 
         
         """ 
-        if Particle.gas_template == None:
-            Particle.gas_template = ct.Solution(mech)
-        self.column_names = ['age', 'mass', 'T', 'MW', 'h', 'phi'] + ["Y_" + sn for sn in Particle.gas_template.species_names] + ["X_" + sn for sn in Particle.gas_template.species_names]        
+        super().__init__(infile=infile, particle_mass=particle_mass, state_vec=state_vec, P=P)
         self.particle_list = particle_list
         self.N_MAX = N_MAX
         self.dt = dt # note: make sure dt is smaller than tau_mix!!! 
         self.ParticleFlowController = None
         self.time = 0.0
         self.timenext = 10*dt   # Next point in time to try and coalesce particles
-        self.mass = 0.0
-        self.state = 0.0
-        self.N = len(self.particle_list)
-        self.mech = mech
         # assert Particle.gas_template.name == mech[0:-4] # TODO: makesure mechs match in all objects
-        self.mean_gas = ct.Solution(self.mech)
-        self.mean_gas.name = "BatchPaSR Mean Gas"
-        self.P = 0.0
-        self.timeHistory_list = []
         self.particle_timeHistory_list = []
         self.particle_timeHistory_info = []
+        try:
+            multiprocessing.set_start_method("spawn")        
+        except Exception:
+            pass
         self.pool = multiprocessing.Pool(processes=NUM_PROCESS, 
                                         initializer=init_process,
-                                        initargs=(self.mech, self.P))
+                                        initargs=(infile, P))
         if len(particle_list) > 0:
-            self.P = particle_list[0].P # NOTE: Assume all particles have same temp
-            self.mean_gas.HPY = particle_list[0].state[0], self.P, particle_list[0].state[1:]
-            self.updateState()
-            self.timeHistory_list = [[self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass, self.mean_gas.get_equivalence_ratio()] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist()]        
+            self.HPY = particle_list[0].HPY
+            self.updateState()   
         # self.chemistry_enabled = chemistry
+        self.entrain_ind = 0
 
-    def __call__(self):
-        self.mean_gas()
-        return self.state
+    @property 
+    def N(self):
+        return len(self.particle_list)
+
+    # def __call__(self):
+    #     self.mean_gas()
+    #     return self.state
     
     def updateState(self):
         """Update mass, number of particles, and BatchPaSR state vector
@@ -88,28 +111,35 @@ class PaSBR(object):
         -------
         None
         """
-        if self.P == 0:
-            self.P = self.particle_list[0].P
-            self.mean_gas.TPX = self.mean_gas.T, self.P, self.mean_gas.X
-        self.mass = sum([p.mass for p in self.particle_list]) # Note: can remove this if we're not updating particle_list if we don't usually update particle_list before we call this method
-        self.N = len(self.particle_list)  
-        self.state = sum([p.mass * p.state for p in self.particle_list])/self.mass # use p() or p.state?
-        self.mean_gas.HPY = self.state[0], self.mean_gas.P, self.state[1:]
-        assert all([round(particle.P) == round(self.P) for particle in self.particle_list]), "BatchPaSR does not support particles with different pressures (yet)"
+        if self.P != self.particle_list[0].P:
+            self.TPX = self.T, self.particle_list[0].P, self.X
+        
+        hy = np.zeros(self.HY.shape)
+        m = 0
+        for i,p in enumerate(self.particle_list):
+            hy += p.mass * p.HY
+            m += p.mass
+            assert round(p.P) == round(self.P), "BatchPaSR does not support particles with different pressures (yet)"
+        self.HY = hy
+        self.mass = m
         assert self.N <= self.N_MAX , f"N ({self.N}) > N_MAX ({self.N_MAX}); too many particles"
-        self.timeHistory_list.append([self.time, self.mass, self.mean_gas.T, self.mean_gas.mean_molecular_weight, self.mean_gas.enthalpy_mass, self.mean_gas.get_equivalence_ratio()] + self.mean_gas.Y.tolist() + self.mean_gas.X.tolist())
+        self.timeHistory_list.append(self.outState)
         
     def insert(self, particle):
         self.particle_list.append(particle)
-        self.updateState() # Is the cost of assigning N to a new value (in updateState()) higher than doing N += 1?
+        self += particle
+        # self.updateState() # Is the cost of assigning N to a new value (in updateState()) higher than doing N += 1?
     
     @classmethod
     def reactHelper(cls, inputs):
-        state, dt = inputs
-        particle = particles[os.getpid()]
-        particle.__setstate__(state)
+        HPY, dt = inputs
+        particle = particles["gri30.xml"]
+        particle(HPY)
+        t1 = time.time()
         particle.react(dt)
-        return particle.__getstate__()
+        t2= time.time()
+        print(f"len(particles) = {len(particles)}\nIn react helper now. PID = {os.getpid()}. Time taken to react for {dt} = {(t2-t1)/1e-3:.3f} ms\n")
+        return particle.HPY
 
 
     def react(self, parallel=False, coalesce = True):
@@ -118,11 +148,12 @@ class PaSBR(object):
                 self.pool = multiprocessing.Pool(processes=NUM_PROCESS, 
                                                 initializer=init_process,
                                                 initargs=(self.mech, self.P))            
-            current_states = [p.state for p in self.particle_list]
+            current_states = [p.HPY for p in self.particle_list]
+            
+            print(f"In parallel block; len(current_states) = {len(current_states)}")
             helper_input = zip(current_states, itertools.repeat(self.dt))
-            new_states = pool.map(PaSBR.reactHelper, helper_input)
-            [p.__setstate__(new_states[i]) for i,p in enumerate(self.particle_list)]
-            [self.particle_list[i].__setstate__(states[i]) for i in range(0, len(self.particle_list))]
+            new_states = self.pool.map(PaSBR.reactHelper, helper_input)
+            [p(new_states[i]) for i,p in enumerate(self.particle_list)]
         else:
             [p.react(self.dt) for p in self.particle_list]
 
@@ -176,13 +207,12 @@ class PaSBR(object):
         #         ind += 1        
     
     def _canCombine(self, p1, p2, tol=1e-6):
-        H_1 = p1.state[0]
-        Y_1 = p1.state[1:]
-        diffH = p2.state[0] - p1.state[0]
-        diffY = p2.state[1:] - p1.state[1:]
+        dHY = p2 - p1
+        diffH = dHY[0]
+        diffY = dHY[1:]
         machine_epsilon = np.finfo(np.float64).eps
-        diffH_percent = (diffH/(H_1 + machine_epsilon))**2
-        diffY_percent = np.linalg.norm(np.divide(diffY, Y_1 + machine_epsilon))
+        diffH_percent = (diffH/(p1.enthalpy_mass + machine_epsilon))**2
+        diffY_percent = np.linalg.norm(np.divide(diffY, p1.Y + machine_epsilon))
         diffH_is_small = diffH_percent < tol
         diffY_is_small = diffY_percent < tol        
         # diffY_is_small = np.linalg.norm(np.divide(diffY, p0.state[1:] + np.finfo(np.float64).eps)) < tol
@@ -193,14 +223,14 @@ class PaSBR(object):
 
 #     def iem(cls, paticle_list)
     def _iem(self, particle_list, k):
-        k_avg = k*self.state
+        k_avg = k*self
         for p in particle_list:
-            p.state = p * (k + 1) - k_avg
+            p(p * (k + 1) - k_avg)
  
     def mix(self, tau_mix): # note: make sure dt < tau_mix!
         # Constant k:
         k = -self.dt/tau_mix # note: actually, k = -0.5*C_phi*omega*dt, but since C_phi is usually 2, i canceled it out.
-        k_avg = k*self.state
+        k_avg = k*self
         [p(p * (k + 1) - k_avg) for p in self.particle_list] # setting p.state_new = p.state_old + k*p.state_old - k*avg_state
         self.updateState()
     
@@ -251,7 +281,7 @@ class PaSBR(object):
 
         # Initialize particles
         for i in range(0, numParticles):
-            tempParticle = Particle.fromGas(added_gas, particle_mass = entrainmentMass[i], chemistry = self.chemistry_enabled)
+            tempParticle = Particle.fromGas(added_gas, particle_mass = entrainmentMass[i])
             self.inactive_particles.append(tempParticle)
 
     def entrain(self, current_time):
@@ -262,7 +292,7 @@ class PaSBR(object):
             # However, this should be less of an issue if more particles and smaller time steps are used
             current_particle = self.inactive_particles[self.entrainInd]
             current_particle.react(current_time)  # Continue reacting until entrainment. Note: assumes current_time starts from 0            
-            self.particle_list.append(current_particle)
+            self.insert(current_particle)
             self.entrainInd += 1
         
 
