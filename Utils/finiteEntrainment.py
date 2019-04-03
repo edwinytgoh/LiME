@@ -10,7 +10,7 @@ milliseconds = 1e-3
 
 def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
                         phi_jet=np.inf, main_flowFunc=None, sec_flowFunc=None,
-                        tau_global=10, T_fuel=300, T_ox=650, P = 25*ct.one_atm, dt:float=0.001*1e-3,mech="gri30.xml", CO_constraint=None, out_dir=os.getcwd()):
+                        tau_global=10, T_fuel=300, T_ox=650, P = 25*ct.one_atm, dt:float=0.001*1e-3,mech="gri30.xml", CO_constraint=None, write_df=True, out_dir=os.getcwd()):
     tau_global *= milliseconds 
     tau_sec *= milliseconds 
     tau_ent_main *= milliseconds 
@@ -76,7 +76,8 @@ def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
             main_mass_injected += mfc_main.mdot(t)*dt; 
             sec_mass_injected += mfc_sec.mdot(t)*dt
             
-        # pdb.set_trace()
+        #! VERY ARBITRARY. NOT GOOD. 
+        #TODO: See if there's a better way to do this:
         while ((T_eq - sec_stage.T > 100) and (sec_stage.age <= 20*1e-3)): # Run extra steps if sec_stage.T is still less than T_eq by more than 50 K
             sec_stage.react(dt)
             main_mass_injected += mfc_main.mdot(t)*dt;
@@ -89,8 +90,9 @@ def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
         sec_stage_DF['CO_ppmvd'] = correctNOx(sec_stage_DF['X_CO'].values, sec_stage_DF['X_H2O'].values, sec_stage_DF['X_O2'].values)
         sec_stage_DF['NO_ppmvd'] = correctNOx(sec_stage_DF['X_NO'].values, sec_stage_DF['X_H2O'].values, sec_stage_DF['X_O2'].values)
         sec_stage_DF['conc_NO'] = sec_stage_DF['density_mole'].values * sec_stage_DF['X_NO'].values
-        sec_stage_DF.to_parquet(sec_stage_file)
-        rate_DF.to_parquet(sec_stage_rate_file)        
+        if write_df == True:
+            sec_stage_DF.to_parquet(sec_stage_file)
+            rate_DF.to_parquet(sec_stage_rate_file)        
     ign_idx = sec_stage_DF['X_OH'].values.argmax()
     ign_row = sec_stage_DF.iloc[ign_idx]
     cons_idx = get_cons_idx(sec_stage_DF['CO_ppmvd'], CO_constraint)

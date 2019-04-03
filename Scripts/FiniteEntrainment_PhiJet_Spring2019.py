@@ -47,6 +47,7 @@ if __name__ == "__main__":
     init_len = len(argsList)
     argsList = list(set(argsList))
     print(f"Found {init_len - len(argsList)} redundant entries.")
+    
     #* RUN CASE
     # print(f"Running on {mp.cpu_count()} cores.")
     pool = mp.Pool(mp.cpu_count())
