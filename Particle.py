@@ -1,12 +1,14 @@
 import cantera as ct 
 import numpy as np 
+import pandas as pd 
+import pdb
 class Particle(ct.Solution):
     """Class for particle in BatchPaSR.
     """
     gas_template = None
 
     @classmethod
-    def fromGas(cls, gas, mech="", particle_mass = 1.0, chemistry = True):
+    def fromGas(cls, gas, mech="", particle_mass = 1.0, rates = True):
         """Initialize particle object with thermochemical state.
         
         Parameters
@@ -29,10 +31,10 @@ class Particle(ct.Solution):
                 mech = gas.mech
             else:
                 mech = f"{gas.name}.xml"
-        return cls(infile=mech, phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), state_vec=state_vec, particle_mass=particle_mass, P=gas.P)
+        return cls(infile=mech, phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), state_vec=state_vec, particle_mass=particle_mass, P=gas.P, rates=rates)
     
     # def __init__(self, state, particle_mass = 1.0, mech='gri30.xml', chemistry = True):
-    def __init__(self, infile='', phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), particle_mass=1.0, state_vec=[], P=101325, **kwargs):
+    def __init__(self, infile='', phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), particle_mass=1.0, state_vec=[], P=101325, rates=True, **kwargs):
         """Initialize particle object with thermochemical state.
 
         Parameters
@@ -65,17 +67,33 @@ class Particle(ct.Solution):
 
         self.mass = particle_mass
         self.age = 0
+        self.reactor = ct.ConstPressureReactor(self, volume=self.mass/self.density)
         self.timeHistory_list = [self.outState]
-        self.reactor = ct.ConstPressureReactor(self)
+        self.rate_list = [np.hstack([self.age, self.net_production_rates])]
         self.net = ct.ReactorNet([self.reactor])
     
+    # @property
+    # def mass(self):
+    #     return self.volume * self.density_mass
+    # @mass.setter
+    # def mass(self, new_mass):
+    #     new_vol = new_mass/self.density_mass
+    #     self.volume
+    
+
     @property
     def column_names(self):
-        return np.hstack(['age', 'T', 'MW', 'h', 'phi', 'mass'] + ["Y_" + sn for sn in self.species_names] + ["X_" + sn for sn in self.species_names])             
+        return np.hstack(['age', 'T', 'MW', 'h', 'phi', 'mass', 'density_mole', 'density_mass', 'NO_production_rate'] + ["Y_" + sn for sn in self.species_names] + ["X_" + sn for sn in self.species_names])             
 
     @property
     def outState(self):
-        return np.vstack([[self.age, self.T, self.mean_molecular_weight, self.enthalpy_mass, self.get_equivalence_ratio(), self.mass] + self.Y.tolist() + self.X.tolist()])
+        self.reactor.syncState()
+        return np.vstack([[self.age, self.T, self.mean_molecular_weight, self.enthalpy_mass, self.get_equivalence_ratio(), self.mass, self.density_mole, self.density_mass, self.net_production_rates[self.species_index('NO')]] 
+        + self.Y.tolist() + self.X.tolist()])
+
+    @property
+    def reaction_rates(self):
+        return np.hstack([self.age, self.net_production_rates])
 
     @property
     def HY(self):
@@ -91,6 +109,10 @@ class Particle(ct.Solution):
     @property
     def volume(self):
         return self.mass/self.density
+    
+    @volume.setter
+    def volume(self, new_vol):
+        self.reactor.volume = new_vol
 
     def __call__(self, comp=None):
         """Return or set composition.
@@ -118,7 +140,7 @@ class Particle(ct.Solution):
                 return NotImplemented
             return self.HPY
         else:
-            # print(self.report())
+            print(self.report())
             pass
    
     def __add__(self, other):
@@ -270,6 +292,7 @@ class Particle(ct.Solution):
             # NOTE: DOES IT MAKE SENSE TO NOT HAVE MASS? 
         else:
             return NotImplemented
+        # self.timeHistory_list.append(self.outState)
         return self
 
     def __isub__(self, other):
@@ -298,9 +321,10 @@ class Particle(ct.Solution):
             # h = self.state[0] + other[0]
             # Y = self.state[1:] + other[1:]
             self.HY = other
-            # NOTE: DOES IT MAKE SENSE TO NOT HAVE MASS? 
+            # !NOTE: DOES IT MAKE SENSE TO NOT HAVE MASS? 
         else:
             return NotImplemented
+        # self.timeHistory_list.append(self.outState)            
         return self        
         # if isinstance(other, Particle):
         #     h = self.state[0] - other.state[0]
@@ -351,14 +375,21 @@ class Particle(ct.Solution):
         None
 
         """
-        self.reactor.syncState() # this will automatically call self.net.reinitialize()
-        self.reactor.volume = self.mass/self.density
-        self.net.advance(dt)
+        # pdb.set_trace()
+        # self.net.reinitialize()
+        # self.reactor.syncState()
+        self.net.set_initial_time(self.age)
         self.age += dt
+        self.net.advance(self.age)
+        if self.reactor.mass >= self.mass:
+            self.mass = self.reactor.mass
+        self.reactor.volume = self.mass/self.density
+        self.reactor.syncState() # this will automatically call self.net.reinitialize()
         self.timeHistory_list.append(self.outState)
+        self.rate_list.append(self.reaction_rates)
         # TODO: Make sure Particle updates state 
         
-    def get_timeHistory(self, timeOffset=0, dataFrame=False):
+    def get_timeHistory(self, timeOffset=0, dataFrame=False, deleteFirstElem=True):
         """Obtain particle's history. 
         
         Parameters
@@ -370,7 +401,10 @@ class Particle(ct.Solution):
         timeHistory_array : `numpy.array` 
             The array containing particle property time traces 
         """
-        timeHistory_array = np.vstack(self.timeHistory_list)
+        if deleteFirstElem:
+            timeHistory_array = np.vstack(self.timeHistory_list[1:])
+        else:
+            timeHistory_array = np.vstack(self.timeHistory_list)
         if timeOffset > 0:
             timeHistory_array[:,0] += timeOffset
         if dataFrame == True:
@@ -379,6 +413,27 @@ class Particle(ct.Solution):
             return df
         
         return timeHistory_array
+
+    def get_rateHistory(self, dataFrame=False, deleteFirstElem=True):
+        """ Obtain particle's net production rate history. 
+
+        Parameters 
+        -----------
+        dataFrame : bool 
+            Boolean value indicating whether or not to output pandas DataFrame 
+        
+        deleteFirstElem : bool
+            Boolean value indicating whether or not to delete first element at t = 0
+        """
+
+        if deleteFirstElem:
+            rate_array = np.vstack(self.rate_list[1:])
+        else:
+            rate_array = np.vstack(self.rate_list)
+        if dataFrame == True: 
+            df = pd.DataFrame(columns = ['age'] + [f"{sp}_productionRate" for sp in self.species_names], data=rate_array)
+            return df 
+        return rate_array
 
     # Custom Equivalence Ratio test
     def get_global_equivalence_ratio(self, oxidizers = [], ignore = []):

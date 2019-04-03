@@ -8,9 +8,20 @@ import os.path
 # import pyarrow.parquet as pq 
 # import pyarrow as pa
 import multiprocessing
-
+fs = 0.058387057492574147288255659304923028685152530670166015625;
 milliseconds = 0.001 # seconds 
 pd.options.mode.chained_assignment = None  # default='warn'
+
+def air(T:float=300, P=25*ct.one_atm, mech='gri30.xml'):
+    air = ct.Solution(mech)
+    air.TPX = T, P, {'N2':0.79, 'O2':0.21}
+    return air
+
+def CH4(T:float=300,P=25*ct.one_atm,mech='gri30.xml'):
+    CH4 = ct.Solution(mech)
+    CH4.TPX = T, P, {'CH4':1.0}
+    return CH4
+
 def runFlame(gas, slope=0.01, curve=0.01):
     # Simulation parameters
     width = 0.06  # m
@@ -91,14 +102,14 @@ def getStateAtTime(flame, tList, tRequired, mech='gri30.xml'):
             vitRN.advance(vit_tList[i])
         vit_tList += tau_vit_start             
         vitDF = pd.DataFrame(data=vitArray, index=vit_tList, columns=columnNames)
-        print("Vitiator end time:", vit_tList[-1]/1e-3, "milliseconds") 
+        # print("Vitiator end time:", vit_tList[-1]/1e-3, "milliseconds") 
         vitiator.syncState()
         '''Call syncState so that newGas has the right state for use in later functions.'''
         minIndex = -1  # last index in time list 
         mainBurnerDF = mainBurnerDF[np.array(mainBurnerDF.index > 0) & np.array(mainBurnerDF.index <= tRequired)]
-        print("Initial mainBurnerDF length:", len(mainBurnerDF.index.values))
+        # print("Initial mainBurnerDF length:", len(mainBurnerDF.index.values))
         mainBurnerDF = pd.concat([mainBurnerDF, vitDF])        
-        print("New mainBurnerDF length:", len(mainBurnerDF.index.values))
+        # print("New mainBurnerDF length:", len(mainBurnerDF.index.values))
     else:
         mainBurnerDF = mainBurnerDF[np.array(mainBurnerDF.index > 0) & np.array(mainBurnerDF.index <= tRequired)]
     mainBurnerDF['NOppmvd'] = correctNOx(mainBurnerDF['X_NO'], mainBurnerDF['X_H2O'], mainBurnerDF['X_O2'])
@@ -110,13 +121,27 @@ def fstoich(fuel={'CH4':1}, ox={'O2':0.21, 'N2':0.79}, mech='gri30.xml'):
     
     Example usage: f_stoich_ch4_air = fstoich() 
                     f_stoich_c2h4_o2 = fstoich(fuel={'C2H4':1}, ox={'O2':1})'''
+    
     gas = ct.Solution(mech) 
     gas.set_equivalence_ratio(1.0, fuel, ox) 
     return sum(gas[fuel.keys()].Y)/sum(gas[ox.keys()].Y)
 
+def calculate_flowRates(phiGlobal, phiMain, phiSec):
+    fs = 0.058387057492574147288255659304923028685152530670166015625;
+    tol = -1e-14
+    mfm = 1
+    mam = 1/(phiMain*fs)
+    mas = (phiGlobal/phiMain - 1)/((phiSec-phiGlobal)*fs)
+    mfs = phiGlobal/phiMain * (1 + (phiGlobal-phiMain)/(phiSec - phiGlobal)) - 1
+
+    # assert mfm >= tol and mfs >= tol and mam >= tol and mas >= tol, f"You have negative mass flow rates! mfm = {mfm}, mam = {mam}, mfs = {mfs}, mas = {mas}"
+
+    m_perc = 100/(mfm + mam + mas + mfs)
+    # return {'mfm':mfm*m_perc, 'mam':mam*m_perc, 'mfs':mfs*m_perc, 'mas':mas*m_perc}
+    return mfm*m_perc, mam*m_perc, mfs*m_perc, mas*m_perc
 def solvePhi_airSplit(phiGlobal, phiMain, mdotTotal=1000, airSplit=1):
     # fs = 
-    fs = 0.058387057492574147;
+    fs = 0.058387057492574147288255659304923028685152530670166015625;
     mfm = airSplit*fs*mdotTotal*(1+fs*phiGlobal)**(-1)*phiMain
     mam = airSplit*mdotTotal*(1+fs*phiGlobal)**(-1)
     mfs = (-1)*(1+fs*phiGlobal)**(-1)*((-1)*fs*mdotTotal*phiGlobal+airSplit*fs*mdotTotal*phiMain)
@@ -124,7 +149,7 @@ def solvePhi_airSplit(phiGlobal, phiMain, mdotTotal=1000, airSplit=1):
     return mfm, mam, mfs, mas
 
 def solveMass_PhiJet(phiGlobal, phiMain, phiJet, mdotTotal=1000):
-    fs = 0.058387057492574147
+    fs = 0.058387057492574147288255659304923028685152530670166015625
     mam = 1
     mfm = mam*fs*phiMain
     mfs1 = mam*fs*(phiGlobal - phiMain)
@@ -225,7 +250,7 @@ def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="g
         mainBurnerDF.to_parquet(filename, compression='gzip')
         
     vitiatedProd, flameCutoffIndex, mainBurnerDF = getStateAtTime(mainBurnerDF, flameTime, tau_main)
-    vitReactor = ct.ConstPressureReactor(vitiatedProd)
+    vitReactor = ct.ConstPressureReactor(vitiatedProd, name='MainBurner')
     return vitReactor, mainBurnerDF
 
 def dataFrame_to_pyarrow(df, filename):
@@ -238,85 +263,6 @@ def pyarrow_to_dataFrame(filename):
     df = pd.read_parquet(filename)
     return df
 
-def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None,T_fuel=300,T_ox=650,P=25, mech="gri30.xml",trace=False):
-    P *= ct.one_atm
-    tau_global *= milliseconds 
-    tau_sec *= milliseconds 
-    tau_main = tau_global - max(0,tau_sec)
-    mfm, mam, mfs, mas = solvePhi_airSplit(phi_global, phi_main, airSplit=airSplit)
-    if ((mfm < 0) | (mfs < 0) | (mas < 0) | (mam < 0)):
-        return np.hstack([0, 0, 100000, 100000, 10000, 10000, 0, 0, 0, np.full(53, 0, dtype=np.float64), np.full(53, 0, dtype=np.float64), 100000, 100000, 100000])
-    m = [mfm + mam, mfs + mas] 
-    mainMassPerc = 100*(mfm + mam)/(mfm + mam + mfs + mas) 
-    secMassPerc = 100*(mfs + mas)/(mfm + mam + mfs + mas)
-    condColumns = ['phi_global', 'phi_main', 'tau_global', 'tau_main', 'tau_sec', 'tau_mix', 'dt', 'T_fuel', 'T_ox', 'main_mass_perc', 'sec_mass_perc', 'mfm', 'mam', 'mfs', 'mas', 'airSplit']
-
-    if (secMassPerc <= 0.001):
-        tau_main = tau_global;
-        tau_sec = 0;
-    if (tau_sec <= 0):
-        phi_main = phi_global;
-
-    # RUN MAIN BURNER
-    tic = time.time() 
-
-    # pdb.set_trace()
-    vitReactor, mainBurnerDF = runMainBurner(phi_main, tau_main, T_fuel, T_ox, P=P, mech=mech)
-    massFracs = mainBurnerDF.columns[mainBurnerDF.columns.str.contains('Y_')] 
-    moleFracs = mainBurnerDF.columns[mainBurnerDF.columns.str.contains('X_')]       
-    flameTime = mainBurnerDF.index.values
-
-    toc = time.time() 
-    # print("Time taken to get flame:", (toc-tic), "secs")
-    if (tau_sec <= 0):
-        T = mainBurnerDF['T'].iloc[-1]
-        Y_values = mainBurnerDF[massFracs].iloc[-1]
-
-        NOCOppmvd = correctNOx(np.array(mainBurnerDF[['X_NO', 'X_CO', 'X_NO2', 'X_N2O']].iloc[-1], dtype=np.float64), mainBurnerDF['X_H2O'].iloc[-1], mainBurnerDF['X_O2'].iloc[-1])     
-        if (trace==True): 
-            mainDF = mainBurnerDF[['T', 'NOppmvd', 'COppmvd']];
-            mainDF.index.name = 'time';
-            return mainDF;
-        return np.hstack([flameTime[-1], mainBurnerDF['T'].iloc[-1], NOCOppmvd[0], NOCOppmvd[1], NOCOppmvd[2], NOCOppmvd[3], np.array(mainBurnerDF.iloc[-1],dtype=np.float64)])
-    # CREATE FUEL PARTICLE
-    fuelStream = ct.Solution(mech) 
-    oxStream = ct.Solution(mech) 
-    fuelStream.TPX = [T_fuel, P, {'CH4':1.0}]
-    oxStream.TPX = [T_ox, P, {'O2':0.21, 'N2':0.79}]     
-    secondaryReactor = ct.ConstPressureReactor(mix([fuelStream, oxStream, vitReactor.thermo], [mfs, mas, mfm + mam], mech=mech)) 
-    tpArray = np.array([vitReactor.thermo, secondaryReactor.thermo])
-    rArray = np.array([vitReactor, secondaryReactor])
-
-    rn = ct.ReactorNet([secondaryReactor])
-    if (trace == False):
-        # RUN SECONDARY REACTOR
-        rn.advance(tau_sec) 
-
-        # GET ENDPOINT DATA
-        NOCOppmvd = correctNOx(secondaryReactor.thermo['NO', 'CO', 'NO2', 'N2O'].X, secondaryReactor.thermo['H2O'].X, secondaryReactor.thermo['O2'].X) 
-        out = np.hstack([rn.time, secondaryReactor.thermo.T, NOCOppmvd[0], NOCOppmvd[1], NOCOppmvd[2], NOCOppmvd[3], secondaryReactor.thermo.T, 0, secondaryReactor.thermo.mean_molecular_weight, secondaryReactor.thermo.Y, secondaryReactor.thermo.X, secondaryReactor.thermo.P, NOCOppmvd[0], NOCOppmvd[1]])   
-        # out = np.hstack([phi_main, tau_sec, NOCOppmvd[0], NOCOppmvd[1], secondaryReactor.thermo.T])
-        return out
-    else:
-        dt = 0.00001 * 1e-3
-        sec_tList = np.arange(0, tau_sec, dt)
-        columnNames = ['time', 'T', 'NOppmvd', 'COppmvd']
-        secArray = np.array([None] * len(sec_tList) * len(columnNames)).reshape(len(sec_tList), len(columnNames))
-        # performance note: we don't need to do this. we can simply just advance to the desired tau_main
-        mainDF = mainBurnerDF[['T', 'NOppmvd', 'COppmvd']];
-        mainDF.index.name = 'time';
-        for i in range(0, len(sec_tList)):
-            MWi = secondaryReactor.thermo.mean_molecular_weight
-            NOCOppmvd = correctNOx(secondaryReactor.thermo['NO', 'CO', 'NO2', 'N2O'].X, secondaryReactor.thermo['H2O'].X, secondaryReactor.thermo['O2'].X) 
-            # secArray[i, :] = np.hstack([vel_final * dt, vel_final, secondaryReactor.thermo.T, 0, MWi, secondaryReactor.thermo.Y, secondaryReactor.thermo.X, secondaryReactor.thermo.P])
-            rn.advance(sec_tList[i])
-            secArray[i,:] = np.hstack([sec_tList[i] + tau_main, secondaryReactor.thermo.T, NOCOppmvd[0], NOCOppmvd[1]])
-        sec_tList += tau_main             
-        secDF = pd.DataFrame(data=secArray, columns=columnNames)
-        secDF = secDF.set_index('time');
-        secondaryReactor.syncState() 
-        stagedDF = pd.concat([mainDF, secDF]) 
-        return stagedDF;
 
 def get_tauHot(timeSeries, out_df, dT = 200): ## REMEMBER TO CHECK UNITS!!!
     """Function that calculates tau_hot, i.e. timescale that represents 
@@ -559,4 +505,4 @@ def get_tempArea(timeSeries, out_df):
     assert weighted_time >= 0, "time must be positive... Something is wrong..."
     return weighted_time/1e-3
     # if T_max - T_final >= 30: # means overshoot
-        
+

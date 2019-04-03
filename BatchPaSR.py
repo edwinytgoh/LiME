@@ -72,7 +72,7 @@ class PaSBR(Particle):
         super().__init__(infile=infile, particle_mass=particle_mass, state_vec=state_vec, P=P)
         self.particle_list = particle_list
         self.N_MAX = N_MAX
-        self.dt = dt # note: make sure dt is smaller than tau_mix!!! 
+        self.dt = dt # ! note: make sure dt is smaller than tau_mix!!! 
         self.ParticleFlowController = None
         self.time = 0.0
         self.timenext = 10*dt   # Next point in time to try and coalesce particles
