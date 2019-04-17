@@ -69,7 +69,7 @@ def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
             sec_stage_DF = pd.read_parquet(sec_stage_file)
             rate_DF = pd.read_parquet(sec_stage_rate_file)
             assert sec_stage_DF.shape[0] > 0, 'Length of sec_stage_DF = 0, deleting this file'
-            assert (T_eq - sec_stage_DF['T'].iloc[-1]) <= 100, "file exists but hasn't ignited" #TODO: Removing the file might be a bit drastic, but I'm a little lazy to create a sec_stage Particle and resume running at the moment >w<
+            # assert (T_eq - sec_stage_DF['T'].iloc[-1]) <= 100, "file exists but hasn't ignited" #TODO: Removing the file might be a bit drastic, but I'm a little lazy to create a sec_stage Particle and resume running at the moment >w<
         except Exception: # Delete files if corrupt 
             os.remove(sec_stage_file)
             os.remove(sec_stage_rate_file)
