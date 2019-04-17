@@ -10,7 +10,10 @@ milliseconds = 1e-3
 
 def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
                         phi_jet=np.inf, main_flowFunc=None, sec_flowFunc=None,
-                        tau_global=10, T_fuel=300, T_ox=650, P = 25*ct.one_atm, dt:float=0.001*1e-3,mech="gri30.xml", CO_constraint=None, CO_constraint_active=False, write_df=True, out_dir=os.getcwd()):
+                        tau_global=10, T_fuel=300, T_ox=650, P = 25*ct.one_atm, dt:float=0.001*1e-3,mech="gri30.xml", CO_constraint=None, CO_constraint_active=False, write_df=True, out_dir=os.getcwd(), flame_file=None):
+    """
+    Example flame_file: flame_file=os.path.join(flame_library_location, f"phi_main_{phi_main:.4f}_GRI30_25atm.pickle")
+    """
     tau_global *= milliseconds 
     tau_sec *= milliseconds 
     tau_ent_main *= milliseconds 
@@ -22,7 +25,7 @@ def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
     if CO_constraint == None: 
         CO_constraint = 1.25*CO_eq
 
-    [main_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main) #* Run main burner
+    [main_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main, filename=flame_file) #* Run main burner
     main_reservoir = ct.Reservoir(contents=main_reactor.thermo)
     main_particle = Particle.fromReactor(main_reactor, mech=mech, particle_mass = mfm + mam)
     filename = f"phiGlobal{phi_global:.4f}_phiMain{phi_main:.5f}_tauEntMain{tau_ent_main/milliseconds:.6f}_tauEntSec{tau_ent_sec/milliseconds:.6f}_phiJetNorm{phi_jet_norm:.6f}_dt{dt:.5e}_P{P:.4f}_mech-{mech}"
