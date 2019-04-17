@@ -40,6 +40,7 @@ if not constraint_violated:
 else:
     temp = 0
     NOx = 1e6
+    COs = 1e6
 
 #writing to output of function
 for i, r in enumerate(results.responses()):
