@@ -27,11 +27,11 @@ def runFlame(gas, slope=0.01, curve=0.01):
     width = 0.06  # m
     # Flame object
     f = ct.FreeFlame(gas, width=width)
-    f.set_refine_criteria(ratio=2, slope=slope, curve=curve)
+    f.set_refine_criteria(ratio=2, slope=slope, curve=curve, prune=min(slope,curve)/1e3)
     f.transport_model = 'Multi'
-    f.solve(loglevel=0, auto=True, refine_grid=True)
-    
-
+    f.soret_enabled = True
+    f.max_grid_points = 10000
+    f.solve(loglevel=1, auto=True, refine_grid=True)
     # Convert distance into time:
     CH2O = gas.species_index('CH2O');
     X_CH2O = f.X[CH2O]
@@ -228,10 +228,11 @@ def iem(m, tpArray, rArray, rn, dt, omega):
     rn.reinitialize()    
     return Y_avg, h_avg
 
-def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="gri30.xml", slope=0.01, curve=0.01): 
+def runMainBurner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25*101325, mech="gri30.xml", slope=0.01, curve=0.01, filename=None): 
     flameGas = premix(phi_main, P=P, mech=mech, T_fuel=T_fuel, T_ox=T_ox) 
     # filename = '{0}_{1}-{2}_{3}-{4}_{5}'.format('phi_main', phi_main, 'P', P, )
-    filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main);
+    if filename == None:
+        filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main);
     if os.path.isfile(filename):
             mainBurnerDF = pd.read_parquet(filename)
             # mainBurnerDF = table.to_pandas()

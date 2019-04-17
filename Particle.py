@@ -32,7 +32,42 @@ class Particle(ct.Solution):
             else:
                 mech = f"{gas.name}.xml"
         return cls(infile=mech, phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), state_vec=state_vec, particle_mass=particle_mass, P=gas.P, rates=rates)
+
+    @classmethod
+    def fromReactor(cls, reactor, mech="", particle_mass = 0, rates = True):
+        """Initialize particle object with reactor reference.
+        
+        Parameters
+        ----------
+        gas : `cantera.Solution`
+            Initial thermochemical state of particle. 
+            Must have NAME property if using custom mechanism. Use ct.Solution("mech.xml", name="mech")
+        
+        particle_mass : `float`
+            Particle mass
+        
+        Returns
+        -------
+        cls : `Particle`
+            Instance of the Particle class
+        """ 
+        reactor.syncState()
+        state_vec = reactor.thermo.state
+        if mech == "":
+            if isinstance(reactor.thermo, cls):
+                mech = reactor.thermo.mech
+            else:
+                mech = f"{reactor.thermo.name}.xml"
+        if particle_mass == 0: 
+            particle_mass = reactor.mass
+        else: 
+            particle_mass = particle_mass
+            reactor.volume = particle_mass/reactor.thermo.density
+        c = cls(infile=mech, phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), state_vec=state_vec, particle_mass=particle_mass, P=reactor.thermo.P, rates=rates)                
+        c.reactor = reactor
+        return c
     
+
     # def __init__(self, state, particle_mass = 1.0, mech='gri30.xml', chemistry = True):
     def __init__(self, infile='', phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), particle_mass=1.0, state_vec=[], P=101325, rates=True, **kwargs):
         """Initialize particle object with thermochemical state.
@@ -88,6 +123,7 @@ class Particle(ct.Solution):
     @property
     def outState(self):
         self.reactor.syncState()
+        self.state = self.reactor.thermo.state # only useful if particle was created using Particle.fromReactor
         return np.vstack([[self.age, self.T, self.mean_molecular_weight, self.enthalpy_mass, self.get_equivalence_ratio(), self.mass, self.density_mole, self.density_mass, self.net_production_rates[self.species_index('NO')]] 
         + self.Y.tolist() + self.X.tolist()])
 
