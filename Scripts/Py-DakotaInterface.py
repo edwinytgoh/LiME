@@ -10,23 +10,39 @@ import dakota.interfacing as di
 
 #parsing Dakota param File & Creating Variables
 miliseconds = 0.001
-params, results = di.read_parameters_file()
-#continuous_vars = [ params['tau_ent_sec'], params['tau_ent_cf'] ]
-tau_ent_sec = params["tau_ent_sec"]*miliseconds
-tau_ent_main = params["tau_ent_cf"]*miliseconds
+tau_ent_main = 10*miliseconds
+tau_ent_sec = 1*miliseconds
+phi_overall = 0.635
 
-tau_sec = 0;
-NOs = 0;
+params, results = di.read_parameters_file()
+phi_sec = params["phi_sec"]
+phi_main = params["phi_main"]
+tau_res_sec = param["T_res_sec"]*miliseconds
+
+
+(mfm,mam,mfs,mas) = solveMass_PhiJet(phi_overall,phi_main, phi_sec)
+mmain = mfm+mam
+msec = mfs+mas
+Msratio = msec/(msec+mmain)
+MdotsRatio =(msec/tau_ent_sec)/((msec/tau_ent_sec)+(mmain/tau_ent_main)) 
+
 COs = 0;
+NOx = 0;
+T = 0;
 
 #running case
 (tau_sec, NOs, COs) = runCase(tau_ent_main, tau_ent_sec, toPickle = False)
-print('Reaction Time until constraint: ' + str(tau_sec*1e3) + ' ms')
-print('Final Overall 15% O2 Corrected NO concentration: ' + str(NOs) + ' ppm')
 
 #writing to output of function
 for i, r in enumerate(results.responses()):
     if r.asv.function:
-        r.function = NOs
+        if i == 0:
+            r.function = NOs
+        if i == 1:
+            r.function = Temp
+        if i == 2:
+            r.function = Msratio
+        if i == 3:
+            r.function = MdotsRatio
 #need no gradients, hessians
 results.write()
