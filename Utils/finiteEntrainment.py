@@ -148,7 +148,7 @@ def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
 
     #* Compile output data into DataFrame
     zero_dict = dict(zip(sec_stage_DF.columns, np.zeros(len(sec_stage_DF.columns))-1000))
-    columns = ['tau_ent_main (s)', 'tau_ent_sec (s)', 'tau_ent_ratio', 'phi_global', 'phi_main', 'phi_jet', 'phi_jet_norm', 'sys_NO_ppmvd', 'sys_NO_ppmvd','NO_ppmvd_constraint', 'CO_ppmvd_constraint', 'T_constraint', 'tau_sec_required (s)', 'phi_constraint', 'tau_ign_OH (s)', 'NO_ppmvd_ign', 'CO_ppmvd_ign', 'T_ign', 'phi_ign', 'X_CH4_ign', 'X_CO2_ign', 'X_O2_ign', 'X_OH_ign', 'phi_init', 'T_init', 'T_max']
+    columns = ['tau_ent_main (s)', 'tau_ent_sec (s)', 'tau_ent_ratio', 'phi_global', 'phi_main', 'phi_jet', 'phi_jet_norm', 'sys_NO_ppmvd', 'sys_CO_ppmvd','NO_ppmvd_constraint', 'CO_ppmvd_constraint', 'T_constraint', 'tau_sec_required (s)', 'phi_constraint', 'tau_ign_OH (s)', 'NO_ppmvd_ign', 'CO_ppmvd_ign', 'T_ign', 'phi_ign', 'X_CH4_ign', 'X_CO2_ign', 'X_O2_ign', 'X_OH_ign', 'phi_init', 'T_init', 'T_max']
     data = np.hstack([tau_ent_main, tau_ent_sec, tau_ent_main/tau_ent_sec, phi_global, phi_main, phi_jet, phi_jet_norm, cons_row[['sys_NO_ppmvd', 'sys_CO_ppmvd','NO_ppmvd', 'CO_ppmvd', 'T', 'age', 'phi']], ign_row[['age', 'NO_ppmvd', 'CO_ppmvd', 'T', 'phi', 'X_CH4', 'X_CO2', 'X_O2', 'X_OH']], sec_stage_DF['phi'].iloc[0], sec_stage_DF['T'].iloc[0], sec_stage_DF['T'].max()])
     out_DF = pd.DataFrame(columns=columns,data=data.reshape((1,len(data))))
     out_DF['reactor_file'] = sec_stage_file
