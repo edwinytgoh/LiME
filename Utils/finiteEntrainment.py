@@ -1,11 +1,13 @@
-from .CanteraTools import *
-import numpy as np 
 import sys 
+import numpy as np 
 import os
 import pdb
 import cantera as ct
+sys.path.append(os.path.join(os.path.dirname(__file__), '.'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from CanteraTools import *
 from Particle import Particle
-from .EquilTools import equil
+from EquilTools import equil
 milliseconds = 1e-3
 
 def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
@@ -166,3 +168,14 @@ def get_cons_idx(COHistory, CO_constraint) -> int:
         return max(min(np.arange(len(COHistory))[COHistory > CO_constraint][-1] + 1, len(COHistory)-1), 0)
     except:
         return -1
+
+import sys
+if __name__ == "__main__":
+    phi_global = float(sys.argv[1])
+    phi_main = float(sys.argv[2])
+    phi_sec = float(sys.argv[3])
+    tau_sec = float(sys.argv[4]) # in milliseconds
+    tau_ent_main = float(sys.argv[5]) # in milliseconds
+    tau_ent_sec = float(sys.argv[6]) # in milliseconds
+    out_DF = finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec, CO_constraint_active=True, phi_jet=phi_sec)
+    reactor_DF = pd.read_parquet(out_DF['reactor_file'].iloc[0])

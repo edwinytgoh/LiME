@@ -5,9 +5,11 @@ import time
 import pdb 
 from argparse import ArgumentParser
 import os.path
+from functools import partial
+from numba import jit
 # import pyarrow.parquet as pq 
 # import pyarrow as pa
-import multiprocessing
+import multiprocessing as mp
 fs = 0.058387057492574147288255659304923028685152530670166015625;
 milliseconds = 0.001 # seconds 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -507,3 +509,69 @@ def get_tempArea(timeSeries, out_df):
     return weighted_time/1e-3
     # if T_max - T_final >= 30: # means overshoot
 
+@jit(nopython=True, fastmath=True, cache=True)
+def get_sys_NOCO(main_X, main_MW, sec_mass, sec_X, sec_MW):
+    """
+    Function to combine main and secondary stage NO and CO to obtain corrected NO and CO. 
+    This function exists separate from the modify_timeTrace_mappable function to enable just-in-time compilation and speed up computations.
+    
+    Parameters:
+    -----------
+    main_X: nx4 np.ndarray with columns being ['X_NO', 'X_O2', 'X_H2O', 'X_CO'] 
+    main_MW: nx1 np.ndarray containing average molecular weight of mixture in main burner 
+    sec_mass: nx1 np.ndarray containing time history of secondary stage mass over time 
+    sec_X: nx4 np.ndarray with columns being ['X_NO', 'X_O2', 'X_H2O', 'X_CO']
+    sec_MW: nx1 np.ndarray containing time history of average molecular weight of secondary mixture
+    """
+    main_mass = np.max(sec_mass) - sec_mass # np.max(sec_mass) gives total mass of system, total - sec = main
+    sec_moles = (sec_mass/sec_MW)
+    sec_moles = sec_moles.reshape((len(sec_moles), 1))
+    main_moles = (main_mass/main_MW)
+    main_moles = main_moles.reshape((len(main_moles), 1))
+    X_average = (main_moles * main_X + sec_moles * sec_X)/(sec_moles + main_moles)
+    one_over_X_H2O = 1/X_average[:,2] 
+    X_O2 = X_average[:,1]
+    dry_O2_perc = X_O2 * one_over_X_H2O * 100
+    factor = (20.9 - 15)/(20.9 - dry_O2_perc)
+    dry_NO = X_average[:,0] * one_over_X_H2O
+    dry_CO = X_average[:,3] * one_over_X_H2O
+    corrected_NO = dry_NO*factor * 1e6 # convert to ppm
+    corrected_CO = dry_CO*factor * 1e6
+    return (corrected_NO, corrected_CO, sec_moles[:,0])
+
+def modify_timeTrace_mappable(vit_df, trace_file):
+    """
+    Function to modify secondary stage time traces to include sys NO and CO. 
+    WARNING: This WILL OVERRIDE the provided trace file. 
+    
+    Parameters:
+    -----------
+    vit_df: pandas DataFrame obtained from running Particle.get_timeHistory(dataFrame=True)
+    trace_file: string containing full path to sec stage file. We're assuming that the file is located in ./SecStage/<trace_file.pickle>
+    """
+    trace_file = trace_file.split("/")[-1]
+    sec_df = pd.read_parquet("SecStage/"+trace_file)
+    if 'sys_NO_ppmvd' in sec_df.columns:
+        return 0
+#     Y_indices_vit = [i for i in range(0,len(vit_df.columns)) if 'Y_' in vit_df.columns[i]]
+#     Y_indices_trace = [i for i in range(0, len(ww.columns)) if 'Y_' in ww.columns[i]]
+#     Y_cols = sec_df.columns[Y_indices_vit].values
+    X_cols = ['X_NO', 'X_O2', 'X_H2O', 'X_CO']
+    main_X = vit_df.loc[(vit_df['age'] >= 0) & (vit_df['age'] <= sec_df['age'].iloc[-1]), X_cols].values
+    main_MW = vit_df.loc[(vit_df['age'] >= 0) & (vit_df['age'] <= sec_df['age'].iloc[-1]), 'MW'].values
+    sec_X = sec_df.loc[:,X_cols].values
+    sec_mass = sec_df['mass'].values
+    sec_MW = sec_df['MW'].values
+    out = get_sys_NOCO(main_X, main_MW, sec_mass, sec_X, sec_MW)
+    sec_df['sys_NO_ppmvd'] = out[0]
+    sec_df['sys_CO_ppmvd'] = out[1]
+    sec_df['n'] = out[2]
+    sec_df.to_parquet("SecStage/"+trace_file)
+    return trace_file
+
+def modify_timeTrace(out_file, vit_df, num_processes=10):
+    out_df = pd.read_parquet(out_file)   
+#     for j, trace_file in tqdm(enumerate(out_df['reactor_file'].values)):
+    pool = mp.Pool(num_processes)
+    a = list(pool.map(partial(modify_timeTrace_mappable, vit_df), out_df['reactor_file'].values))
+    return a
