@@ -10,16 +10,16 @@ from Particle import Particle
 from EquilTools import equil
 milliseconds = 1e-3
 
-def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
+def finite_entrainment(phi_global, phi_main, tau_sec_ms, tau_ent_main_ms, tau_ent_sec_ms,
                         phi_jet=np.inf, main_flowFunc=None, sec_flowFunc=None,
-                        tau_global=10, T_fuel=300, T_ox=650, P = 25*ct.one_atm, dt:float=0.001*1e-3,mech="gri30.xml", CO_constraint=None, CO_constraint_active=False, write_df=True, out_dir=os.getcwd(), flame_file=None):
+                        tau_global_ms=10, T_fuel=300, T_ox=650, P = 25*ct.one_atm, dt:float=0.001*1e-3,mech="gri30.xml", CO_constraint=None, CO_constraint_active=False, write_df=True, out_dir=os.getcwd(), flame_file=None):
     """
     Example flame_file: flame_file=os.path.join(flame_library_location, f"phi_main_{phi_main:.4f}_GRI30_25atm.pickle")
     """
-    tau_global *= milliseconds 
-    tau_sec *= milliseconds 
-    tau_ent_main *= milliseconds 
-    tau_ent_sec *= milliseconds
+    tau_global = tau_global_ms * milliseconds 
+    tau_sec = tau_sec_ms * milliseconds 
+    tau_ent_main = tau_ent_main_ms * milliseconds 
+    tau_ent_sec = tau_ent_sec_ms * milliseconds
     tau_main = tau_global - max(0,tau_sec) 
     phi_jet_norm = 1 if phi_jet == np.inf else phi_jet/(1+phi_jet)
     mfm, mam, mfs, mas = calculate_flowRates(phi_global, phi_main, phi_jet)
@@ -83,9 +83,11 @@ def finite_entrainment(phi_global, phi_main, tau_sec, tau_ent_main, tau_ent_sec,
         for i,t in enumerate(np.arange(0, tau_sec, dt)):
             sec_stage.react(dt)
             main_reservoir.syncState()
+            # Keeping track of injected mass
             main_mass_injected += mfc_main.mdot(t)*dt; 
             sec_mass_injected += mfc_sec.mdot(t)*dt            
             main_particle.mass = max(main_particle.mass - mfc_main.mdot(t)*dt, 0)
+            # Increase particle ages and log time history
             main_particle.age += dt
             main_particle.timeHistory_list.append(main_particle.outState)
             sec_particle.mass = max(sec_particle.mass - mfc_sec.mdot(t)*dt, 0)
@@ -165,7 +167,8 @@ def get_cons_idx(COHistory, CO_constraint) -> int:
 #! if all(COHistory < CO_constraint), get error: index -1 is out of bounds for axis 0 with size 0
     # idx_list = (COHistory > CO_constraint) if not all(COHistory < CO_constraint) else (len(COHistory) - 1)
     try:
-        return max(min(np.arange(len(COHistory))[COHistory > CO_constraint][-1] + 1, len(COHistory)-1), 0)
+        CO_greater_idx = np.arange(len(COHistory))[COHistory > CO_constraint] # all indices where CO is greater than constraint
+        return max(min(CO_greater_idx[-1] + 1, len(COHistory)-1), 0)
     except:
         return -1
 

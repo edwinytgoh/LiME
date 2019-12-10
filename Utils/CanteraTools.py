@@ -1,10 +1,11 @@
 import cantera as ct 
 import numpy as np 
 import pandas as pd
+import shutil
 import time 
 import pdb 
 from argparse import ArgumentParser
-import os.path
+import os, os.path
 from functools import partial
 from numba import jit
 # import pyarrow.parquet as pq 
@@ -126,7 +127,7 @@ def fstoich(fuel={'CH4':1}, ox={'O2':0.21, 'N2':0.79}, mech='gri30.xml'):
     
     gas = ct.Solution(mech) 
     gas.set_equivalence_ratio(1.0, fuel, ox) 
-    return sum(gas[fuel.keys()].Y)/sum(gas[ox.keys()].Y)
+    return np.sum(gas[fuel.keys()].Y)/np.sum(gas[ox.keys()].Y)
 
 def calculate_flowRates(phiGlobal, phiMain, phiSec):
     fs = 0.058387057492574147288255659304923028685152530670166015625;
@@ -380,7 +381,7 @@ def get_Da(timeSeries, out_df, P=25*101325):
     R_universal = 8.3144598; # J/mol-K or m3-Pa/mol-K
     M = (P/R_universal)/timeSeries['T'] # units of moles/volume
     dt = timeSeries['age'].diff()
-    dM = M.diff();
+    dM = M.diff()
     dM_dt = dM/dt
     X_NO = timeSeries['X_NO']
     conc_NO = M*X_NO; 
@@ -526,10 +527,11 @@ def get_sys_NOCO(main_X, main_MW, sec_mass, sec_X, sec_MW):
     main_mass = np.max(sec_mass) - sec_mass # np.max(sec_mass) gives total mass of system, total - sec = main
     sec_moles = (sec_mass/sec_MW)
     sec_moles = sec_moles.reshape((len(sec_moles), 1))
+
     main_moles = (main_mass/main_MW)
     main_moles = main_moles.reshape((len(main_moles), 1))
     X_average = (main_moles * main_X + sec_moles * sec_X)/(sec_moles + main_moles)
-    one_over_X_H2O = 1/X_average[:,2] 
+    one_over_X_H2O = 1/(1 - X_average[:,2])
     X_O2 = X_average[:,1]
     dry_O2_perc = X_O2 * one_over_X_H2O * 100
     factor = (20.9 - 15)/(20.9 - dry_O2_perc)
@@ -539,7 +541,7 @@ def get_sys_NOCO(main_X, main_MW, sec_mass, sec_X, sec_MW):
     corrected_CO = dry_CO*factor * 1e6
     return (corrected_NO, corrected_CO, sec_moles[:,0])
 
-def modify_timeTrace_mappable(vit_df, trace_file):
+def modify_timeTrace_mappable(vit_df, trace_file, sec_stage_path = "SecStage/"):
     """
     Function to modify secondary stage time traces to include sys NO and CO. 
     WARNING: This WILL OVERRIDE the provided trace file. 
@@ -549,29 +551,212 @@ def modify_timeTrace_mappable(vit_df, trace_file):
     vit_df: pandas DataFrame obtained from running Particle.get_timeHistory(dataFrame=True)
     trace_file: string containing full path to sec stage file. We're assuming that the file is located in ./SecStage/<trace_file.pickle>
     """
-    trace_file = trace_file.split("/")[-1]
-    sec_df = pd.read_parquet("SecStage/"+trace_file)
-    if 'sys_NO_ppmvd' in sec_df.columns:
-        return 0
+    trace_file = trace_file.split(os.pathsep)[-1]
+    low_temp_path = sec_stage_path + "LowTemp/"
+    os.makedirs(low_temp_path, exist_ok=True)
+    try:
+        sec_df = pd.read_parquet(sec_stage_path+trace_file)
+    except Exception as e:
+        return f"{e}: {trace_file}"
+    if sec_df['T'].iloc[-1] < 1900: #TODO: don't hardcode this
+        shutil.move(sec_stage_path + trace_file, low_temp_path + trace_file)
+        return f"Temp too low ({sec_df['T'].iloc[-1]:.2f} K): {trace_file}" 
+    # if 'sys_NO_ppmvd' in sec_df.columns:
+    #     return f"Done: {trace_file}"
 #     Y_indices_vit = [i for i in range(0,len(vit_df.columns)) if 'Y_' in vit_df.columns[i]]
 #     Y_indices_trace = [i for i in range(0, len(ww.columns)) if 'Y_' in ww.columns[i]]
 #     Y_cols = sec_df.columns[Y_indices_vit].values
     X_cols = ['X_NO', 'X_O2', 'X_H2O', 'X_CO']
+
+    #Extract main burner state until end of secondary reactor
     main_X = vit_df.loc[(vit_df['age'] >= 0) & (vit_df['age'] <= sec_df['age'].iloc[-1]), X_cols].values
     main_MW = vit_df.loc[(vit_df['age'] >= 0) & (vit_df['age'] <= sec_df['age'].iloc[-1]), 'MW'].values
+
     sec_X = sec_df.loc[:,X_cols].values
     sec_mass = sec_df['mass'].values
     sec_MW = sec_df['MW'].values
+
+    if len(main_MW) < len(sec_mass):
+        dt = vit_df['age'].diff().mean()
+        missing_timesteps = np.arange(vit_df['age'].iloc[-1] + dt, sec_df['age'].iloc[-1], dt)
+        new_MW = np.interp(missing_timesteps, vit_df['age'].iloc[-100:], vit_df['MW'].iloc[-100:])
+        main_NW = np.append(main_MW, new_MW)
+        new_X = np.vstack(
+            [np.interp(missing_timesteps, vit_df['age'].iloc[-100:], vit_df['X_NO'].iloc[-100:]), 
+            np.interp(missing_timesteps, vit_df['age'].iloc[-100:], vit_df['X_O2'].iloc[-100:]), 
+            np.interp(missing_timesteps, vit_df['age'].iloc[-100:], vit_df['X_H2O'].iloc[-100:]), 
+            np.interp(missing_timesteps, vit_df['age'].iloc[-100:], vit_df['X_CO'].iloc[-100:]), 
+            ]).T
+        main_X = np.append(main_X, new_X)
+
     out = get_sys_NOCO(main_X, main_MW, sec_mass, sec_X, sec_MW)
     sec_df['sys_NO_ppmvd'] = out[0]
     sec_df['sys_CO_ppmvd'] = out[1]
     sec_df['n'] = out[2]
-    sec_df.to_parquet("SecStage/"+trace_file)
+    sec_df.to_parquet(sec_stage_path+trace_file)
     return trace_file
 
-def modify_timeTrace(out_file, vit_df, num_processes=10):
-    out_df = pd.read_parquet(out_file)   
+def modify_timeTrace(trace_files, vit_df, num_processes=10):
+    # out_df = pd.read_parquet(out_file)   
 #     for j, trace_file in tqdm(enumerate(out_df['reactor_file'].values)):
     pool = mp.Pool(num_processes)
-    a = list(pool.map(partial(modify_timeTrace_mappable, vit_df), out_df['reactor_file'].values))
+    a = list(pool.map(partial(modify_timeTrace_mappable, vit_df), trace_files))
     return a
+
+@jit(nopython=True)
+def get_cons_idx(COHistory, CO_constraint) -> int:
+#! if all(COHistory < CO_constraint), get error: index -1 is out of bounds for axis 0 with size 0
+    # try:
+    CO_greater_idx = np.arange(len(COHistory))[COHistory > CO_constraint] # all indices where CO is greater than constraint
+    if len(CO_greater_idx) >= 1: 
+        return max(min(CO_greater_idx[-1] + 1, len(COHistory)-1), 0)
+    else: 
+        return -1
+    # except:
+    #     return -1
+
+@jit(nopython=True)
+def get_weighted_temperature(time, temp, factor=1):
+    weighted_temp = np.sum(np.exp(-factor/temp)[1:] * (time[1:] - time[0:-1]))
+    return weighted_temp
+
+@jit(nopython=True)
+def central_difference(y, x):
+    sorted_idx = np.argsort(x)
+    x_sorted = x[sorted_idx]
+    y_sorted = y[sorted_idx]
+    dydx = np.zeros(y.shape)
+    for i in range(1, len(y)):
+        dydx[sorted_idx[i]] = (y_sorted[i + 1] - y_sorted[i - 1])/(x_sorted[i + 1] - x_sorted[i - 1])
+#     for i in range(1,len(y)):
+#         dydx[i] = (y[i + 1] - y[i - 1])/(x[i + 1] - x[i - 1])
+    dydx[sorted_idx[0]] = np.nan
+    dydx[sorted_idx[-1]] = np.nan
+    return dydx.astype(np.float64)
+
+def post_process_reactor_trace(trace_file, sec_stage_path="SecStage/", CO_constraint=32, dataframe=False): 
+    trace_file = trace_file.split(os.pathsep)[-1]
+    try:
+        sec_df = pd.read_parquet(sec_stage_path+trace_file)
+    except Exception as e:
+        return f"{e}: {trace_file}"    
+    cons_idx = get_cons_idx(sec_df['CO_ppmvd'].values, CO_constraint)
+    cons_row = sec_df.iloc[cons_idx] if cons_idx >= 0 else None
+    columns = [
+        'tau_ent_main (s)', 
+        'tau_ent_sec (s)', 
+        'tau_ent_ratio', 
+        'phi_global', 
+        'phi_main', 
+        'phi_jet',
+        'phi_jet_norm', 
+        'sys_NO_ppmvd', 
+        'sys_CO_ppmvd',
+        'NO_ppmvd_constraint', 
+        'CO_ppmvd_constraint', 
+        'T_constraint', 
+        'tau_sec_required (s)', 
+        'phi_constraint', 
+        'tau_ign_maxGradT (s)', 
+        'NO_ppmvd_ign', 
+        'CO_ppmvd_ign', 
+        'T_ign', 
+        'phi_ign', 
+        'X_CH4_ign', 
+        'X_CO2_ign', 
+        'X_O2_ign', 
+        'X_OH_ign', 
+        'phi_init', 
+        'T_init', 
+        'T_max', 
+        'T_median', 
+        'T_mean', 
+        'T_weighted', # integral of exp(-38,379/T)*dt
+        'T_weighted_eq',
+        'T_weighted_1950',        
+        'tau_hot', # time where T > 1950 K 
+    ]
+    tau_ent_main = float(trace_file[trace_file.find('tauEntMain')+len('tauEntMain'):trace_file.find('tauEntSec')-1])*1e-3
+    tau_ent_sec = float(trace_file[trace_file.find('tauEntSec')+len('tauEntSec'):trace_file.find('phiJetNorm')-1])*1e-3
+    tau_ent_ratio = tau_ent_main/tau_ent_sec
+    phi_global = float(trace_file[trace_file.find('phiGlobal')+len('phiGlobal'):trace_file.find('phiMain')-1])
+    phi_main = float(trace_file[trace_file.find('phiMain')+len('phiMain'):trace_file.find('tauEntMain')-1])
+    phi_jet_norm = float(trace_file[trace_file.find('phiJetNorm')+len('phiJetNorm'):trace_file.find('dt')-1])
+    phi_jet = phi_jet_norm/(1-phi_jet_norm) if phi_jet_norm < 1 else np.inf
+    if isinstance(cons_row, pd.Series): 
+        sys_NO_ppmvd = cons_row['sys_NO_ppmvd']
+        sys_CO_ppmvd = cons_row['sys_CO_ppmvd']
+        NO_ppmvd_constraint = cons_row['NO_ppmvd']
+        CO_ppmvd_constraint = cons_row['CO_ppmvd']
+        T_constraint = cons_row['T']
+        tau_sec_required = cons_row['age']
+        phi_constraint = cons_row['phi']
+    elif cons_row == None: 
+        sys_NO_ppmvd = -1000
+        sys_CO_ppmvd = -1000
+        NO_ppmvd_constraint = -1000
+        CO_ppmvd_constraint = -1000
+        T_constraint = -1000
+        tau_sec_required = -1000
+        phi_constraint = -1000
+    # define ignition to be max temp gradient
+    ign_idx = np.nanargmax(central_difference(sec_df['T'].values, sec_df['age'].values))
+    ign_row = sec_df.iloc[ign_idx]
+    NO_ppmvd_ign = ign_row['NO_ppmvd']
+    CO_ppmvd_ign = ign_row['CO_ppmvd']
+    T_ign = ign_row['T']
+    phi_ign = ign_row['phi']
+    X_CH4_ign = ign_row['X_CH4']
+    X_CO2_ign = ign_row['X_CO2']
+    X_O2_ign = ign_row['X_O2']
+    X_OH_ign = ign_row['X_OH']
+    tau_ign_maxGradT = ign_row['age']
+
+    phi_init = sec_df['phi'].iloc[0]
+    T_init = sec_df['T'].iloc[0]
+    T_max = sec_df['T'].max()
+    T_median = sec_df['T'].median()
+    T_mean = sec_df['T'].mean()
+    T_weighted = get_weighted_temperature(sec_df['age'].values, sec_df['T'].values)
+    T_weighted_eq = get_weighted_temperature(sec_df['age'].values, sec_df['T'].values, factor=sec_df['T'].iloc[-1])
+    T_weighted_1950 = get_weighted_temperature(sec_df['age'].values, sec_df['T'].values, factor=1950)
+    tau_hot = len(sec_df[sec_df['T'] >= 1950])*sec_df['age'].diff().mean()
+
+    outputs = [
+        tau_ent_main,
+        tau_ent_sec,
+        tau_ent_ratio,
+        phi_global,
+        phi_main,
+        phi_jet,
+        phi_jet_norm,
+        sys_NO_ppmvd,
+        sys_CO_ppmvd,
+        NO_ppmvd_constraint,
+        CO_ppmvd_constraint,
+        T_constraint,
+        tau_sec_required,
+        phi_constraint,
+        tau_ign_maxGradT,
+        NO_ppmvd_ign,
+        CO_ppmvd_ign,
+        T_ign,
+        phi_ign,
+        X_CH4_ign,
+        X_CO2_ign,
+        X_O2_ign,
+        X_OH_ign,
+        phi_init,
+        T_init,
+        T_max,
+        T_median,
+        T_mean,
+        T_weighted,
+        T_weighted_eq,
+        T_weighted_1950,
+        tau_hot,
+    ]    
+    if dataframe:
+        return pd.DataFrame(data=np.array(outputs)[np.newaxis], columns=columns)
+    else: 
+        return outputs
