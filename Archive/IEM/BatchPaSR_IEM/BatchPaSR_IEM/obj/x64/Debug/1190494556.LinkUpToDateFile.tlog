@@ -1,1 +1,0 @@
-g++ -o "/home/edwin/projects/BatchPaSR_IEM/bin/x64/Debug/BatchPaSR_IEM.out" -Wl,--no-undefined -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack /home/edwin/projects/BatchPaSR_IEM/obj/x64/Debug/main.o
