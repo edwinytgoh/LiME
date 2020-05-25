@@ -120,7 +120,7 @@ class LiME(Particle):
         self.HY = hy
         self.mass = m
         assert self.N <= self.N_MAX , f"N ({self.N}) > N_MAX ({self.N_MAX}); too many particles"
-        self.timeHistory_list.append(self.out_state)
+        self.time_history.append(self.out_state)
 
     def insert(self, particle):
         self.particle_list.append(particle)
@@ -304,7 +304,7 @@ class LiME(Particle):
         timeHistory_array : `numpy.array` 
             The array containing particle property time traces 
         """
-        self.timeHistory_array = np.vstack(self.timeHistory_list)
+        self.timeHistory_array = np.vstack(self.time_history)
         if dataframe == True:
             df = pd.DataFrame(columns = self.column_names, data = self.timeHistory_array)
             df.set_index(['age'])

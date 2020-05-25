@@ -8,13 +8,13 @@ import pandas as pd
 from numba import jit
 
 
-def get_tauHot(timeSeries, out_df, dT=200):  ## REMEMBER TO CHECK UNITS!!!
+def get_tauHot(time_series, out_df, dT=200):  ## REMEMBER TO CHECK UNITS!!!
     """Function that calculates tau_hot, i.e. timescale that represents
     the duration of high-temperature regions in a staged combustor's secondary stage.
 
     Parameters
     ----------
-    timeSeries : `pandas.DataFrame`
+    time_series : `pandas.DataFrame`
         DataFrame that contains the time history of the current case. Needs to contain columns ['age'] and ['T'] for current time and corresponding temperature, respectively.
 
     out_df : `pandas.DataFrame`
@@ -37,16 +37,16 @@ def get_tauHot(timeSeries, out_df, dT=200):  ## REMEMBER TO CHECK UNITS!!!
     """
     # pdb.set_trace()
     tau_hot_start = out_df['tau_ign_OH'].values[0]  # seconds
-    T_max = max(timeSeries['T'])
+    T_max = max(time_series['T'])
     T_final = out_df['T'].values
     # print(f"T_max = {T_max:.2f} K;\nIgnition delay based on OH conc: {tau_hot_start/1e-3} ms")
     overshoot_value = T_max - T_final
     overshoot = overshoot_value > 15
-    max_ind = timeSeries['T'].values.argmax()
+    max_ind = time_series['T'].values.argmax()
     if overshoot:
         # print(f"Overshoot by: {T_max - out_df['T']:.2f} K")
         # find temperature after peak where T = T_max - dT
-        remaining_df = timeSeries.iloc[max_ind:]
+        remaining_df = time_series.iloc[max_ind:]
         if overshoot_value > dT:
             remaining_df = remaining_df[
                 (remaining_df['T'] <= T_max - dT)]  # choose first value where T drops by dT from T_Max
@@ -64,13 +64,13 @@ def get_tauHot(timeSeries, out_df, dT=200):  ## REMEMBER TO CHECK UNITS!!!
     return tau_hot, tau_hot_start, tau_hot_end
 
 
-def get_tauNOx(timeSeries, tauHot_start, tauHot_end, P=25 * 101325):
+def get_tauNOx(time_series, tauHot_start, tauHot_end, P=25 * 101325):
     """Function that calculates tau_NOx, i.e. timescale that represents
     the rate of NOx production in a staged combustor's high-temperature region.
 
     Parameters
     ----------
-    timeSeries : `pandas.DataFrame`
+    time_series : `pandas.DataFrame`
         DataFrame that contains the time history of the current case. Needs to contain columns ['age'] and ['T'] for current time and corresponding temperature, respectively.
 
     tauHot_start : float
@@ -89,17 +89,17 @@ def get_tauNOx(timeSeries, tauHot_start, tauHot_end, P=25 * 101325):
 
     """
     eps = 0.0001 * 1e-3
-    ign_state = timeSeries[(timeSeries['age'] >= tauHot_start - eps) & (
-            timeSeries['age'] <= tauHot_start + eps)]  # system state at ignition
-    end_state = timeSeries[
-        (timeSeries['age'] >= tauHot_end - eps) & (timeSeries['age'] <= tauHot_end + eps)]  # system "end" state
+    ign_state = time_series[(time_series['age'] >= tauHot_start - eps) & (
+            time_series['age'] <= tauHot_start + eps)]  # system state at ignition
+    end_state = time_series[
+        (time_series['age'] >= tauHot_end - eps) & (time_series['age'] <= tauHot_end + eps)]  # system "end" state
 
     R_universal = 8.3144598  # J/mol-K or m3-Pa/mol-K
-    M = (P / R_universal) / timeSeries['T']  # units of moles/volume
-    dt = timeSeries['age'].diff()
+    M = (P / R_universal) / time_series['T']  # units of moles/volume
+    dt = time_series['age'].diff()
     dM = M.diff();
     dM_dt = dM / dt
-    X_NO = timeSeries['X_NO']
+    X_NO = time_series['X_NO']
     conc_NO = M * X_NO;
     d_XNO = X_NO.diff()
     d_XNO_dt = d_XNO / dt
@@ -138,8 +138,8 @@ def get_Da(timeSeries, out_df, P=25 * 101325):
     tau_NOx_column = M / dNO_dt
     tau_NOx_NO_column = conc_NO / dNO_dt
 
-    # ign_state = timeSeries[(timeSeries['age'] >= tau_hot_start - eps) & (timeSeries['age'] <= tau_hot_start + eps)] # system state at ignition
-    # end_state = timeSeries[(timeSeries['age'] >= tau_hot_end - eps) & (timeSeries['age'] <= tau_hot_end + eps)] # system "end" state
+    # ign_state = time_series[(time_series['age'] >= tau_hot_start - eps) & (time_series['age'] <= tau_hot_start + eps)] # system state at ignition
+    # end_state = time_series[(time_series['age'] >= tau_hot_end - eps) & (time_series['age'] <= tau_hot_end + eps)] # system "end" state
     tau_hot_start = out_df['tau_ign_OH'].values[0]
     start_ind = int(timeSeries[(timeSeries['age'] >= tau_hot_start - eps) & (
             timeSeries['age'] <= tau_hot_start + eps)].index.values[0])
@@ -197,8 +197,8 @@ def get_Da_TempDrop(timeSeries, out_df, P=25 * 101325):
     tau_NOx_column = M / timeSeries['dNO_dt']
     tau_NOx_NO_column = timeSeries['conc_NO'] / timeSeries['dNO_dt']
 
-    # ign_state = timeSeries[(timeSeries['age'] >= tau_hot_start - eps) & (timeSeries['age'] <= tau_hot_start + eps)] # system state at ignition
-    # end_state = timeSeries[(timeSeries['age'] >= tau_hot_end - eps) & (timeSeries['age'] <= tau_hot_end + eps)] # system "end" state
+    # ign_state = time_series[(time_series['age'] >= tau_hot_start - eps) & (time_series['age'] <= tau_hot_start + eps)] # system state at ignition
+    # end_state = time_series[(time_series['age'] >= tau_hot_end - eps) & (time_series['age'] <= tau_hot_end + eps)] # system "end" state
     tau_hot_start = out_df['tau_ign_OH'].values[0]
     start_ind = int(timeSeries[(timeSeries['age'] >= tau_hot_start - eps) & (
             timeSeries['age'] <= tau_hot_start + eps)].index.values[0])

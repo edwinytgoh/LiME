@@ -5,8 +5,8 @@ import cantera as ct
 import numpy as np
 import pandas as pd
 
-fs = 0.058387057492574147288255659304923028685152530670166015625
-milliseconds = 0.001  # seconds
+from lime.utils import fs
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
@@ -33,13 +33,13 @@ def run_flame(gas, slope=0.01, curve=0.01):
     f.max_grid_points = 10000
     f.solve(loglevel=1, auto=True, refine_grid=True)
     # Convert distance into time:
-    CH2O: int = gas.species_index('CH2O');
+    CH2O: int = gas.species_index('CH2O')
     X_CH2O = f.X[CH2O]
-    maxIndex = np.arange(0, len(X_CH2O))[X_CH2O == max(X_CH2O)][0];
+    maxIndex = np.arange(0, len(X_CH2O))[X_CH2O == max(X_CH2O)][0]
     maxIndex2 = X_CH2O.argmax()
     assert maxIndex == maxIndex2
     #     startingIndex = np.arange(0, len(X_CH2O))[X_CH2O >= X_CH2O[0] + 5][0]
-    startingIndex = maxIndex;
+    startingIndex = maxIndex
     #     startingIndex = np.arange(0, len(f.heat_release_rate))[f.heat_release_rate == max(f.heat_release_rate)][0]
     u_avg = np.array(f.u[startingIndex:] + f.u[startingIndex - 1:-1]) * 0.5
     dx = np.array(f.grid[startingIndex:] - f.grid[startingIndex - 1:-1])
@@ -134,13 +134,12 @@ def fstoich(fuel={'CH4': 1}, ox={'O2': 0.21, 'N2': 0.79}, mech='gri30.xml'):
     return np.sum(gas[fuel.keys()].Y) / np.sum(gas[ox.keys()].Y)
 
 
-def calculate_flowrates(phiGlobal, phiMain, phiSec):
-    fs = 0.058387057492574147288255659304923028685152530670166015625;
+def calculate_flowrates(phi_global, phi_main, phi_sec):
     tol = -1e-14
     mfm = 1
-    mam = 1 / (phiMain * fs)
-    mas = (phiGlobal / phiMain - 1) / ((phiSec - phiGlobal) * fs)
-    mfs = phiGlobal / phiMain * (1 + (phiGlobal - phiMain) / (phiSec - phiGlobal)) - 1
+    mam = 1 / (phi_main * fs)
+    mas = (phi_global / phi_main - 1) / ((phi_sec - phi_global) * fs)
+    mfs = phi_global / phi_main * (1 + (phi_global - phi_main) / (phi_sec - phi_global)) - 1
 
     # assert mfm >= tol and mfs >= tol and mam >= tol and mas >= tol, f"You have negative mass flow rates! mfm = {mfm}, mam = {mam}, mfs = {mfs}, mas = {mas}"
 
@@ -149,24 +148,22 @@ def calculate_flowrates(phiGlobal, phiMain, phiSec):
     return mfm * m_perc, mam * m_perc, mfs * m_perc, mas * m_perc
 
 
-def solve_mass_airsplit(phiGlobal, phiMain, mdotTotal=1000, airSplit=1):
+def solve_mass_airsplit(phi_global, phi_main, mdotTotal=1000, airSplit=1):
     # fs = 
-    fs = 0.058387057492574147288255659304923028685152530670166015625;
-    mfm = airSplit * fs * mdotTotal * (1 + fs * phiGlobal) ** (-1) * phiMain
-    mam = airSplit * mdotTotal * (1 + fs * phiGlobal) ** (-1)
-    mfs = (-1) * (1 + fs * phiGlobal) ** (-1) * (
-            (-1) * fs * mdotTotal * phiGlobal + airSplit * fs * mdotTotal * phiMain)
-    mas = (-1) * ((-1) + airSplit) * mdotTotal * (1 + fs * phiGlobal) ** (-1)
+    mfm = airSplit * fs * mdotTotal * (1 + fs * phi_global) ** (-1) * phi_main
+    mam = airSplit * mdotTotal * (1 + fs * phi_global) ** (-1)
+    mfs = (-1) * (1 + fs * phi_global) ** (-1) * (
+            (-1) * fs * mdotTotal * phi_global + airSplit * fs * mdotTotal * phi_main)
+    mas = (-1) * ((-1) + airSplit) * mdotTotal * (1 + fs * phi_global) ** (-1)
     return mfm, mam, mfs, mas
 
 
-def solve_mass_phi_jet(phiGlobal, phiMain, phiJet, mdotTotal=1000):
-    fs = 0.058387057492574147288255659304923028685152530670166015625
+def solve_mass_phi_jet(phi_global, phi_main, phiJet, mdotTotal=1000):
     mam = 1
-    mfm = mam * fs * phiMain
-    mfs1 = mam * fs * (phiGlobal - phiMain)
-    mas = mfs1 / (fs * (phiJet - phiGlobal))
-    mfs = mfs1 + mas * fs * phiGlobal
+    mfm = mam * fs * phi_main
+    mfs1 = mam * fs * (phi_global - phi_main)
+    mas = mfs1 / (fs * (phiJet - phi_global))
+    mfs = mfs1 + mas * fs * phi_global
     # Normalize
     mtot = mam + mfm + mas + mfs
     mam *= mdotTotal / mtot
@@ -222,39 +219,16 @@ def premix(phi=0.4, fuel={'CH4': 1}, ox={'N2': 0.79, 'O2': 0.21}, mech='gri30.xm
     return mix([fuelGas, air], [mdot_fuel, mdot_ox], P=P)
 
 
-def iem(m, tpArray, rArray, rn, dt, omega):
-    # Constant k:
-    C_phi = 2
-    k = -C_phi * omega * 0.5 * dt
-    # Calculate average: 
-    m_total_r = 1 / sum(m)
-    M_species_total = sum([m[i] * tpArray[i].Y for i in range(0, len(tpArray))])
-    H_total = sum([m[i] * tpArray[i].enthalpy_mass for i in range(0, len(tpArray))])
-    Y_avg = M_species_total * m_total_r  # Y_species_avg = (M_total_species)/(M_total_system)
-    h_avg = H_total * m_total_r  # H_avg is the specific mass-weighted average across all reactors of the total enthalpy.
-    # Adjust reactor state:     
-    for i in range(0, len(tpArray)):
-        Y_current = tpArray[i].Y
-        Y_new = Y_current + k * (Y_current - Y_avg)
-        h = tpArray[i].enthalpy_mass
-        h_new = h + k * (h - h_avg)
-        tpArray[i].HPY = [h_new, tpArray[i].P, Y_new]
-        rArray[i].syncState()
-    # Reinitialize reactor network solver:         
-    rn.reinitialize()
-    return Y_avg, h_avg
-
-
 def run_main_burner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25 * 101325, mech="gri30.xml", slope=0.01, curve=0.01,
                     filename=None):
     flameGas = premix(phi_main, P=P, mech=mech, T_fuel=T_fuel, T_ox=T_ox)
     # filename = '{0}_{1}-{2}_{3}-{4}_{5}'.format('phi_main', phi_main, 'P', P, )
     if filename == None:
-        filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main);
+        filename = '{0}_{1:.4f}.pickle'.format('phi_main', phi_main)
     if os.path.isfile(filename):
         mainBurnerDF = pd.read_parquet(filename)
         # mainBurnerDF = table.to_pandas()
-        flameTime = mainBurnerDF.index.values;
+        flameTime = mainBurnerDF.index.values
     else:
         flame, flameTime = run_flame(flameGas, slope=slope, curve=curve)
         columnNames = ['x', 'u', 'T', 'n', 'MW'] + ["Y_" + sn for sn in flameGas.species_names] + ["X_" + sn for sn in
@@ -264,11 +238,36 @@ def run_main_burner(phi_main, tau_main, T_fuel=300, T_ox=650, P=25 * 101325, mec
              np.array([[0] * len(flame.T)]), flame.Y, flame.X], axis=0)
         mainBurnerDF = pd.DataFrame(data=flameData.transpose(), index=flameTime, columns=columnNames)
         mainBurnerDF.index.name = 'Time'
-        mainBurnerDF['P'] = flame.P;
-        # table = pa.Table.from_pandas(mainBurnerDF);
-        # pq.write_table(table, filename);
+        mainBurnerDF['P'] = flame.P
+        # table = pa.Table.from_pandas(mainBurnerDF)
+        # pq.write_table(table, filename)
         mainBurnerDF.to_parquet(filename, compression='gzip')
 
     vitiatedProd, flameCutoffIndex, mainBurnerDF = get_state_at_time(mainBurnerDF, flameTime, tau_main)
     vitReactor = ct.ConstPressureReactor(vitiatedProd, name='MainBurner')
     return vitReactor, mainBurnerDF
+
+
+def get_global_equivalence_ratio(species_names, gas_template, oxidizers=[], ignore=[]):
+    if not oxidizers:  # Default behavior, find all possible oxidizers
+        oxidizers = [sn for sn in species_names]  # if
+        # all(y not in s.composition for y in ['C', 'H', 'S'])]
+        alpha = 0
+        mol_O = 0
+        for k, s in enumerate(gas_template.species):
+            if s.name in ignore:
+                continue
+            else:  # elif s.name in oxidizers:
+                mol_O += s.composition.get('O', 0) * gas_template.X[k]
+                # else:
+                nC = s.composition.get('C', 0)
+                nH = s.composition.get('H', 0)
+                # nO = s.composition.get('O', 0)
+                nS = s.composition.get('S', 0)
+
+                alpha += (2 * nC + nH / 2 + 2 * nS) * gas_template.X[k]
+
+        if mol_O == 0:
+            return float('inf')
+        else:
+            return alpha / mol_O
