@@ -29,3 +29,9 @@ __pycache__/CanteraTools.cpython-36.pyc
 */*/__pycache__/
 
 */__pycache__/
+
+# PyCharm folder
+.idea/
+.idea/*
+.idea\
+.idea

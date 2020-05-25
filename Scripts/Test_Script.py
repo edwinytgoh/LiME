@@ -7,14 +7,14 @@ milliseconds = 0.001
 [mfm, mam, mfs, mas] = solvePhi_airSplit(0.638, 0.4, 100, 1)
 [vit_reactor, main_burner_DF] = runMainBurner(0.4, 19*milliseconds)
 
-# vit_particle = Particle.fromGas(vit_reactor.thermo, particle_mass = entrainmentMass)
+# vit_particle = Particle.from_gas(vit_reactor.thermo, particle_mass = entrainmentMass)
 # g1 = ct.Solution('gri30.xml')
 
 secondary_gas = ct.Solution('gri30.xml')
 secondary_gas.TPX = 300, 25*ct.one_atm, {'CH4':1}
-secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas)
+secondary_part = Particle.from_gas(secondary_gas, particle_mass=mfs + mas)
 
-# Initial PaSBR 
+# Initial LiME
 bp = PaSBR(particle_list=[secondary_part], dt=0.001*milliseconds, N_MAX=100)
 states = ct.SolutionArray(bp.mean_gas, extra=['t'])
 enthalpy = []
@@ -22,7 +22,7 @@ totalTime = 1*milliseconds
 t = np.arange(0, totalTime, bp.dt)
 
 # Constant entrainment rate for now (decide on more realistic with reference)
-bp.prepEntrainment(added_gas = vit_reactor.thermo, total_mass_added = (mam+mfm), tau_ent = totalTime, numParticles=50, method='constant')
+bp.prep_entrainment(added_gas = vit_reactor.thermo, total_mass_added = (mam + mfm), tau_ent = totalTime, numParticles=50, method='constant')
 for i in range(0,t.size):
     bp.entrain(t[i])
     bp.react()
@@ -33,14 +33,14 @@ for i in range(0,t.size):
 # BR + MFC Code
 [vit_reactor2, main_burner_DF] = runMainBurner(0.4, 19*milliseconds)
 
-# vit_particle = Particle.fromGas(vit_reactor.thermo, particle_mass = entrainmentMass)
+# vit_particle = Particle.from_gas(vit_reactor.thermo, particle_mass = entrainmentMass)
 # g1 = ct.Solution('gri30.xml')
 
 secondary_gas2 = ct.Solution('gri30.xml')
 secondary_gas2.TPX = 300, 25*ct.one_atm, {'CH4':1}
 sec_reactor = ct.ConstPressureReactor(secondary_gas2, volume = (mfs+mas)/secondary_gas2.density_mass)
 sec_reactor.chemistry_enabled = True
-# secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas)
+# secondary_part = Particle.from_gas(secondary_gas, particle_mass=mfs+mas)
 
 totalTime = 1*milliseconds
 mfc = ct.MassFlowController(vit_reactor, sec_reactor, mdot = (mfm+mam)/totalTime)
@@ -67,7 +67,7 @@ ax3.set_title('Average Gas CO Concentration over time (uncorrected ppm)')
 plt.xlabel('Time (seconds)')
 
 #for i in range(1):
-    #df = bp.particle_list[i].get_timeHistory(dataFrame=True)
+    #df = bp.particle_list[i].get_time_history(dataframe=True)
     #labelstr = 'Secondary Stream Particle' if i == 0 else 'Entrained Particle ' + str(i)
     #NO_corr = correctNOx(df['X_NO'], df['X_H2O'], df['X_O2'])
     #CO_corr = correctNOx(df['X_CO'], df['X_H2O'], df['X_O2'])

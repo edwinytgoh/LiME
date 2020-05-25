@@ -24,9 +24,9 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
     # Calculate main burner:
     [vit_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main, P=P)    
 
-    # Setup PaSBR:
+    # Setup LiME:
     secondary_gas = mix([fuel, air], [mfs, mas], P = P)
-    pasbr = bp.PaSBR([], N_MAX = 5000, dt = dt)
+    pasbr = bp.LiME([], N_MAX = 5000, dt = dt)
     pfc_main = bp.ParticleFlowController(pasbr, vit_reactor.thermo, mass_main, dt, lambda t: mdot_main if t <= tau_ent_main else 0)
     pfc_sec = bp.ParticleFlowController(pasbr, secondary_gas, mass_sec, dt, lambda t: mdot_sec if t <= tau_ent_sec else 0)
 
@@ -48,7 +48,7 @@ def run_finite_everything(tau_mix, tau_ent_main, tau_ent_sec, phi_global = 0.635
         num_particles_list.append(len(pasbr.particle_list))
 
     # Output data 
-    entrainment_zone_df = pasbr.get_timeHistory()
+    entrainment_zone_df = pasbr.get_time_history()
     system_timeHistory = np.vstack(system_timeHistory)
     system_df = pd.DataFrame(columns=entrainment_zone_df.columns, data=system_timeHistory)
     system_df['num_particles'] = np.array(num_particles_list)

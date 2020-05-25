@@ -22,12 +22,12 @@ def main():
 
     secondary_gas = ct.Solution('gri30.xml')
     secondary_gas.TPX = 300, 25*ct.one_atm, {'CH4':1}
-    secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas)
+    secondary_part = Particle.from_gas(secondary_gas, particle_mass=mfs + mas)
 
-    # Initialize PaSBR 
+    # Initialize LiME
     temp_gas = ct.Solution('gri30.xml')
-    temp_gas.TPX = 300, 25*ct.one_atm, {'AR':1} # I need some sort of filler for the PaSBR to work
-    temp_part = Particle.fromGas(temp_gas, particle_mass=1e-6)
+    temp_gas.TPX = 300, 25*ct.one_atm, {'AR':1} # I need some sort of filler for the LiME to work
+    temp_part = Particle.from_gas(temp_gas, particle_mass=1e-6)
     bp = PaSBR(particle_list=[temp_part], dt=0.001*milliseconds, N_MAX=100)
     states = ct.SolutionArray(bp.mean_gas, extra=['t'])
     enthalpy = []

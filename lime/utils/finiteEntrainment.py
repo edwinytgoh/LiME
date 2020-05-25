@@ -29,7 +29,7 @@ def finite_entrainment(phi_global, phi_main, tau_sec_ms, tau_ent_main_ms, tau_en
 
     [main_reactor, main_burner_DF] = runMainBurner(phi_main, tau_main, filename=flame_file) #* Run main burner
     main_reservoir = ct.Reservoir(contents=main_reactor.thermo)
-    main_particle = Particle.fromReactor(main_reactor, mech=mech, particle_mass = mfm + mam)
+    main_particle = Particle.from_reactor(main_reactor, mech=mech, particle_mass =mfm + mam)
     filename = f"phiGlobal{phi_global:.4f}_phiMain{phi_main:.5f}_tauEntMain{tau_ent_main/milliseconds:.6f}_tauEntSec{tau_ent_sec/milliseconds:.6f}_phiJetNorm{phi_jet_norm:.6f}_dt{dt:.5e}_P{P:.4f}_mech-{mech}"
 #* Create Secondary Reservoir:  
     if np.isinf(phi_jet):
@@ -37,7 +37,7 @@ def finite_entrainment(phi_global, phi_main, tau_sec_ms, tau_ent_main_ms, tau_en
     else:
         secondary_gas = mix([CH4(T_fuel, P, mech), air(T_ox, P, mech)], [fs*phi_jet, 1], P = P)
     
-    sec_particle = Particle.fromGas(secondary_gas, particle_mass = mfs + mas)
+    sec_particle = Particle.from_gas(secondary_gas, particle_mass =mfs + mas)
     sec_reservoir = ct.Reservoir(contents=sec_particle)
 
 #* Create secondary STAGE:  
@@ -89,10 +89,10 @@ def finite_entrainment(phi_global, phi_main, tau_sec_ms, tau_ent_main_ms, tau_en
             main_particle.mass = max(main_particle.mass - mfc_main.mdot(t)*dt, 0)
             # Increase particle ages and log time history
             main_particle.age += dt
-            main_particle.timeHistory_list.append(main_particle.outState)
+            main_particle.timeHistory_list.append(main_particle.out_state)
             sec_particle.mass = max(sec_particle.mass - mfc_sec.mdot(t)*dt, 0)
             sec_particle.age += dt
-            sec_particle.timeHistory_list.append(sec_particle.outState)
+            sec_particle.timeHistory_list.append(sec_particle.out_state)
 
             
         #! VERY ARBITRARY. NOT GOOD. 
@@ -101,10 +101,10 @@ def finite_entrainment(phi_global, phi_main, tau_sec_ms, tau_ent_main_ms, tau_en
         #     sec_stage.react(dt)
         #     main_mass_injected += mfc_main.mdot(t)*dt;
         #     sec_mass_injected += mfc_sec.mdot(t)*dt
-        sec_stage_DF = sec_stage.get_timeHistory(dataFrame=True, deleteFirstElem=False)
-        rate_DF = sec_stage.get_rateHistory(dataFrame=True, deleteFirstElem=False)
-        jet_DF = sec_particle.get_timeHistory(dataFrame=True, deleteFirstElem=False)
-        vit_df = main_particle.get_timeHistory(dataFrame=True, deleteFirstElem=False)
+        sec_stage_DF = sec_stage.get_time_history(dataframe=True, delete_first_elem=False)
+        rate_DF = sec_stage.get_rate_history(dataframe=True, deleteFirstElem=False)
+        jet_DF = sec_particle.get_time_history(dataframe=True, delete_first_elem=False)
+        vit_df = main_particle.get_time_history(dataframe=True, delete_first_elem=False)
 #* Post-process:
 
     #* Add system NO and CO: 

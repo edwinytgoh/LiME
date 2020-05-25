@@ -7,14 +7,14 @@ milliseconds = 0.001
 [mfm, mam, mfs, mas] = solvePhi_airSplit(0.638, 0.4, 100, 1)
 [vit_reactor, main_burner_DF] = runMainBurner(0.4, 19*milliseconds)
 
-# vit_particle = Particle.fromGas(vit_reactor.thermo, particle_mass = entrainmentMass)
+# vit_particle = Particle.from_gas(vit_reactor.thermo, particle_mass = entrainmentMass)
 # g1 = ct.Solution('gri30.xml')
 
 secondary_gas = ct.Solution('gri30.xml')
 secondary_gas.TPX = 300, 25*ct.one_atm, {'CH4':1}
 sec_reactor = ct.ConstPressureReactor(secondary_gas, volume = (mfs+mas)/secondary_gas.density_mass)
 sec_reactor.chemistry_enabled = False
-# secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas)
+# secondary_part = Particle.from_gas(secondary_gas, particle_mass=mfs+mas)
 
 totalTime = 1*milliseconds
 mfc = ct.MassFlowController(vit_reactor, sec_reactor, mdot = (mfm+mam)/totalTime)

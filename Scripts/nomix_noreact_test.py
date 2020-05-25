@@ -7,14 +7,14 @@ milliseconds = 0.001
 [mfm, mam, mfs, mas] = solvePhi_airSplit(0.638, 0.4, 100, 1)
 [vit_reactor, main_burner_DF] = runMainBurner(0.4, 19*milliseconds)
 
-# vit_particle = Particle.fromGas(vit_reactor.thermo, particle_mass = entrainmentMass)
+# vit_particle = Particle.from_gas(vit_reactor.thermo, particle_mass = entrainmentMass)
 # g1 = ct.Solution('gri30.xml')
 
 secondary_gas = ct.Solution('gri30.xml')
 secondary_gas.TPX = 300, 25*ct.one_atm, {'CH4':1}
-secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas, chemistry = False)
+secondary_part = Particle.from_gas(secondary_gas, particle_mass=mfs + mas, chemistry = False)
 
-# Initial PaSBR 
+# Initial LiME
 bp = PaSBR(particle_list=[secondary_part], dt=0.001*milliseconds, N_MAX=50, chemistry = False)
 totalTime = 1*milliseconds
 times = np.arange(0, totalTime, bp.dt)
@@ -23,7 +23,7 @@ times = np.arange(0, totalTime, bp.dt)
 customInterval = np.array([0., 1., 1., 1., 2., 2., 2., 3., 3., 4.])
 customInterval *= 0.95*totalTime/np.sum(customInterval) # 0.95 so that last particle enters before end
 customInterval = customInterval.cumsum()
-bp.prepEntrainment(added_gas = vit_reactor.thermo, total_mass_added = (mam+mfm), tau_ent = totalTime, numParticles=10, method='constant')   #, time_interval = customInterval)
+bp.prep_entrainment(added_gas = vit_reactor.thermo, total_mass_added = (mam + mfm), tau_ent = totalTime, numParticles=10, method='constant')   #, time_interval = customInterval)
 
 states = ct.SolutionArray(bp.mean_gas, extra=['t'])
 enthalpy = []
@@ -40,14 +40,14 @@ for ti in times:
 
 [vit_reactor2, main_burner_DF] = runMainBurner(0.4, 19*milliseconds)
 
-# vit_particle = Particle.fromGas(vit_reactor.thermo, particle_mass = entrainmentMass)
+# vit_particle = Particle.from_gas(vit_reactor.thermo, particle_mass = entrainmentMass)
 # g1 = ct.Solution('gri30.xml')
 
 secondary_gas2 = ct.Solution('gri30.xml')
 secondary_gas2.TPX = 300, 25*ct.one_atm, {'CH4':1}
 sec_reactor = ct.ConstPressureReactor(secondary_gas2, volume = (mfs+mas)/secondary_gas2.density_mass)
 sec_reactor.chemistry_enabled = False
-# secondary_part = Particle.fromGas(secondary_gas, particle_mass=mfs+mas)
+# secondary_part = Particle.from_gas(secondary_gas, particle_mass=mfs+mas)
 
 totalTime = 1*milliseconds
 mfc = ct.MassFlowController(vit_reactor, sec_reactor, mdot = (mfm+mam)/totalTime)
@@ -81,7 +81,7 @@ ax1.plot(states.t, states.T, label = 'Entrained Case')
 ax2.plot(states.t, enthalpy, label = 'Entrained Case')
 ax3.plot(states.t, NO_corr, label = 'Entrained Case')
 ax4.plot(states.t, CO_corr, label = 'Entrained Case')
-df = bp.get_timeHistory()
+df = bp.get_time_history()
 ax5.plot(df['age'], df['mass'], label = 'Entrained Case')
 
 NO_corr2 = correctNOx(states2('NO').X, states2('H2O').X, states2('O2').X)

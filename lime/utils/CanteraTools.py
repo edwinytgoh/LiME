@@ -548,7 +548,7 @@ def modify_timeTrace_mappable(vit_df, trace_file, sec_stage_path = "SecStage/"):
     
     Parameters:
     -----------
-    vit_df: pandas DataFrame obtained from running Particle.get_timeHistory(dataFrame=True)
+    vit_df: pandas DataFrame obtained from running Particle.get_time_history(dataframe=True)
     trace_file: string containing full path to sec stage file. We're assuming that the file is located in ./SecStage/<trace_file.pickle>
     """
     trace_file = trace_file.split(os.pathsep)[-1]

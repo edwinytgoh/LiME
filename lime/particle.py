@@ -1,14 +1,15 @@
-import cantera as ct 
-import numpy as np 
-import pandas as pd 
-import pdb
+import cantera as ct
+import numpy as np
+import pandas as pd
+
+
 class Particle(ct.Solution):
     """Class for particle in BatchPaSR.
     """
     gas_template = None
 
     @classmethod
-    def fromGas(cls, gas, mech="", particle_mass = 1.0, rates = True):
+    def from_gas(cls, gas, mech="", particle_mass = 1.0, rates = True):
         """Initialize particle object with thermochemical state.
         
         Parameters
@@ -24,7 +25,7 @@ class Particle(ct.Solution):
         -------
         cls : `Particle`
             Instance of the Particle class
-        """ 
+        """
         state_vec = gas.state
         if mech == "":
             if isinstance(gas, cls):
@@ -34,7 +35,7 @@ class Particle(ct.Solution):
         return cls(infile=mech, phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), state_vec=state_vec, particle_mass=particle_mass, P=gas.P, rates=rates)
 
     @classmethod
-    def fromReactor(cls, reactor, mech="", particle_mass = 0, rates = True):
+    def from_reactor(cls, reactor, mech="", particle_mass = 0, rates = True):
         """Initialize particle object with reactor reference.
         
         Parameters
@@ -50,7 +51,7 @@ class Particle(ct.Solution):
         -------
         cls : `Particle`
             Instance of the Particle class
-        """ 
+        """
         reactor.syncState()
         state_vec = reactor.thermo.state
         if mech == "":
@@ -58,15 +59,15 @@ class Particle(ct.Solution):
                 mech = reactor.thermo.mech
             else:
                 mech = f"{reactor.thermo.name}.xml"
-        if particle_mass == 0: 
+        if particle_mass == 0:
             particle_mass = reactor.mass
-        else: 
+        else:
             particle_mass = particle_mass
             reactor.volume = particle_mass/reactor.thermo.density
-        c = cls(infile=mech, phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), state_vec=state_vec, particle_mass=particle_mass, P=reactor.thermo.P, rates=rates)                
+        c = cls(infile=mech, phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), state_vec=state_vec, particle_mass=particle_mass, P=reactor.thermo.P, rates=rates)
         c.reactor = reactor
         return c
-    
+
 
     # def __init__(self, state, particle_mass = 1.0, mech='gri30.xml', chemistry = True):
     def __init__(self, infile='', phaseid='', source=None, thermo=None, species=(), kinetics=None, reactions=(), particle_mass=1.0, state_vec=[], P=101325, rates=True, **kwargs):
@@ -103,10 +104,10 @@ class Particle(ct.Solution):
         self.mass = particle_mass
         self.age = 0
         self.reactor = ct.ConstPressureReactor(self, volume=self.mass/self.density)
-        self.timeHistory_list = [self.outState]
+        self.timeHistory_list = [self.out_state]
         self.rate_list = [np.hstack([self.age, self.net_production_rates])]
         self.net = ct.ReactorNet([self.reactor])
-    
+
     # @property
     # def mass(self):
     #     return self.volume * self.density_mass
@@ -114,17 +115,17 @@ class Particle(ct.Solution):
     # def mass(self, new_mass):
     #     new_vol = new_mass/self.density_mass
     #     self.volume
-    
+
 
     @property
     def column_names(self):
-        return np.hstack(['age', 'T', 'MW', 'h', 'phi', 'mass', 'density_mole', 'density_mass', 'NO_production_rate'] + ["Y_" + sn for sn in self.species_names] + ["X_" + sn for sn in self.species_names])             
+        return np.hstack(['age', 'T', 'MW', 'h', 'phi', 'mass', 'density_mole', 'density_mass', 'NO_production_rate'] + ["Y_" + sn for sn in self.species_names] + ["X_" + sn for sn in self.species_names])
 
     @property
-    def outState(self):
+    def out_state(self):
         self.reactor.syncState()
-        self.state = self.reactor.thermo.state # only useful if particle was created using Particle.fromReactor
-        return np.vstack([[self.age, self.T, self.mean_molecular_weight, self.enthalpy_mass, self.get_equivalence_ratio(), self.mass, self.density_mole, self.density_mass, self.net_production_rates[self.species_index('NO')]] 
+        self.state = self.reactor.thermo.state # only useful if particle was created using Particle.from_reactor
+        return np.vstack([[self.age, self.T, self.mean_molecular_weight, self.enthalpy_mass, self.get_equivalence_ratio(), self.mass, self.density_mole, self.density_mass, self.net_production_rates[self.species_index('NO')]]
         + self.Y.tolist() + self.X.tolist()])
 
     @property
@@ -134,18 +135,18 @@ class Particle(ct.Solution):
     @property
     def HY(self):
         return np.insert(self.HPY[2], 0, self.HPY[0])
-        
+
     @HY.setter
     def HY(self, vec):
-        if (len(vec) == len(self.HY)):
+        if len(vec) == len(self.HY):
             self.HPY = vec[0], self.P, vec[1:]
-        elif (len(vec) == len(self.HPY)):
+        elif len(vec) == len(self.HPY):
             self.HPY = vec
 
     @property
     def volume(self):
         return self.mass/self.density
-    
+
     @volume.setter
     def volume(self, new_vol):
         self.reactor.volume = new_vol
@@ -171,14 +172,14 @@ class Particle(ct.Solution):
                 if len(comp) == len(self.HY):
                     self.HY = comp
             elif isinstance(comp, tuple) and len(comp) == len(self.HPY):
-                self.HPY = comp # ignore 
+                self.HPY = comp # ignore
             else:
                 return NotImplemented
             return self.HPY
         else:
             print(self.report())
             pass
-   
+
     def __add__(self, other):
         """Add values to state of particle without changing the state of either particle.
 
@@ -196,7 +197,7 @@ class Particle(ct.Solution):
         if isinstance(other, Particle):
             return self.HY + other.HY
         elif isinstance(other, np.ndarray):
-            if (len(other) == len(self.HY)): 
+            if len(other) == len(self.HY):
                 return self.HY + other
         elif isinstance(other,tuple) and (len(other) == len(self.HPY)):
             return (self.HPY[i] + other[i] for i in range(0, len(self.HPY)))
@@ -238,12 +239,12 @@ class Particle(ct.Solution):
         if isinstance(other, Particle):
             return self.HY - other.HY
         elif isinstance(other, np.ndarray):
-            if (len(other) == len(self.HY)): 
+            if len(other) == len(self.HY):
                 return self.HY - other
         elif isinstance(other, tuple) and (len(other) == len(self.HPY)):
                 return (self.HPY[i] - other[i] for i in range(0, len(self.HPY)))
         else:
-            return NotImplemented            
+            return NotImplemented
 
     def __rsub__(self, other):
         """Subtract state of particle from input state without changing the state of either particle.
@@ -328,7 +329,7 @@ class Particle(ct.Solution):
             # NOTE: DOES IT MAKE SENSE TO NOT HAVE MASS? 
         else:
             return NotImplemented
-        # self.timeHistory_list.append(self.outState)
+        # self.timeHistory_list.append(self.out_state)
         return self
 
     def __isub__(self, other):
@@ -360,8 +361,8 @@ class Particle(ct.Solution):
             # !NOTE: DOES IT MAKE SENSE TO NOT HAVE MASS? 
         else:
             return NotImplemented
-        # self.timeHistory_list.append(self.outState)            
-        return self        
+        # self.timeHistory_list.append(self.out_state)
+        return self
         # if isinstance(other, Particle):
         #     h = self.state[0] - other.state[0]
         #     Y = self.state[1:] - other.state[1:]
@@ -397,7 +398,7 @@ class Particle(ct.Solution):
             return self
         else:
             return NotImplemented
-        
+
     def react(self, dt):
         """Perform reaction timestep by advancing network.
 
@@ -421,11 +422,11 @@ class Particle(ct.Solution):
             self.mass = self.reactor.mass
         self.reactor.volume = self.mass/self.density
         self.reactor.syncState() # this will automatically call self.net.reinitialize()
-        self.timeHistory_list.append(self.outState)
+        self.timeHistory_list.append(self.out_state)
         self.rate_list.append(self.reaction_rates)
         # TODO: Make sure Particle updates state 
-        
-    def get_timeHistory(self, timeOffset=0, dataFrame=False, deleteFirstElem=True):
+
+    def get_time_history(self, time_offset=0, dataframe=False, delete_first_elem=True):
         """Obtain particle's history. 
         
         Parameters
@@ -437,25 +438,25 @@ class Particle(ct.Solution):
         timeHistory_array : `numpy.array` 
             The array containing particle property time traces 
         """
-        if deleteFirstElem:
+        if delete_first_elem:
             timeHistory_array = np.vstack(self.timeHistory_list[1:])
         else:
             timeHistory_array = np.vstack(self.timeHistory_list)
-        if timeOffset > 0:
-            timeHistory_array[:,0] += timeOffset
-        if dataFrame == True:
+        if time_offset > 0:
+            timeHistory_array[:,0] += time_offset
+        if dataframe:
             df = pd.DataFrame(columns = self.column_names, data = timeHistory_array)
             df.set_index(['age'])
             return df
-        
+
         return timeHistory_array
 
-    def get_rateHistory(self, dataFrame=False, deleteFirstElem=True):
+    def get_rate_history(self, dataframe=False, deleteFirstElem=True):
         """ Obtain particle's net production rate history. 
 
         Parameters 
         -----------
-        dataFrame : bool 
+        dataframe : bool 
             Boolean value indicating whether or not to output pandas DataFrame 
         
         deleteFirstElem : bool
@@ -466,9 +467,9 @@ class Particle(ct.Solution):
             rate_array = np.vstack(self.rate_list[1:])
         else:
             rate_array = np.vstack(self.rate_list)
-        if dataFrame == True: 
+        if dataframe:
             df = pd.DataFrame(columns = ['age'] + [f"{sp}_productionRate" for sp in self.species_names], data=rate_array)
-            return df 
+            return df
         return rate_array
 
     # Custom Equivalence Ratio test
