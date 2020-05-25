@@ -1,11 +1,11 @@
-from .CanteraTools import *
+from .cantera_tools import *
 
 def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None,T_fuel=300,T_ox=650,P=25, mech="gri30.xml",trace=False):
     P *= ct.one_atm
     tau_global *= milliseconds 
     tau_sec *= milliseconds 
     tau_main = tau_global - max(0,tau_sec)
-    mfm, mam, mfs, mas = solvePhi_airSplit(phi_global, phi_main, airSplit=airSplit)
+    mfm, mam, mfs, mas = solve_mass_airsplit(phi_global, phi_main, airSplit=airSplit)
     if ((mfm < 0) | (mfs < 0) | (mas < 0) | (mam < 0)):
         return np.hstack([0, 0, 100000, 100000, 10000, 10000, 0, 0, 0, np.full(53, 0, dtype=np.float64), np.full(53, 0, dtype=np.float64), 100000, 100000, 100000])
     m = [mfm + mam, mfs + mas] 
@@ -23,7 +23,7 @@ def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None
     tic = time.time() 
 
     # pdb.set_trace()
-    vitReactor, mainBurnerDF = runMainBurner(phi_main, tau_main, T_fuel, T_ox, P=P, mech=mech)
+    vitReactor, mainBurnerDF = run_main_burner(phi_main, tau_main, T_fuel, T_ox, P=P, mech=mech)
     massFracs = mainBurnerDF.columns[mainBurnerDF.columns.str.contains('Y_')] 
     moleFracs = mainBurnerDF.columns[mainBurnerDF.columns.str.contains('X_')]       
     flameTime = mainBurnerDF.index.values
@@ -34,7 +34,7 @@ def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None
         T = mainBurnerDF['T'].iloc[-1]
         Y_values = mainBurnerDF[massFracs].iloc[-1]
 
-        NOCOppmvd = correctNOx(np.array(mainBurnerDF[['X_NO', 'X_CO', 'X_NO2', 'X_N2O']].iloc[-1], dtype=np.float64), mainBurnerDF['X_H2O'].iloc[-1], mainBurnerDF['X_O2'].iloc[-1])     
+        NOCOppmvd = correct_nox(np.array(mainBurnerDF[['X_NO', 'X_CO', 'X_NO2', 'X_N2O']].iloc[-1], dtype=np.float64), mainBurnerDF['X_H2O'].iloc[-1], mainBurnerDF['X_O2'].iloc[-1])
         if (trace==True): 
             mainDF = mainBurnerDF[['T', 'NOppmvd', 'COppmvd']];
             mainDF.index.name = 'time';
@@ -55,7 +55,7 @@ def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None
         rn.advance(tau_sec) 
 
         # GET ENDPOINT DATA
-        NOCOppmvd = correctNOx(secondaryReactor.thermo['NO', 'CO', 'NO2', 'N2O'].X, secondaryReactor.thermo['H2O'].X, secondaryReactor.thermo['O2'].X) 
+        NOCOppmvd = correct_nox(secondaryReactor.thermo['NO', 'CO', 'NO2', 'N2O'].X, secondaryReactor.thermo['H2O'].X, secondaryReactor.thermo['O2'].X)
         out = np.hstack([rn.time, secondaryReactor.thermo.T, NOCOppmvd[0], NOCOppmvd[1], NOCOppmvd[2], NOCOppmvd[3], secondaryReactor.thermo.T, 0, secondaryReactor.thermo.mean_molecular_weight, secondaryReactor.thermo.Y, secondaryReactor.thermo.X, secondaryReactor.thermo.P, NOCOppmvd[0], NOCOppmvd[1]])   
         # out = np.hstack([phi_main, tau_sec, NOCOppmvd[0], NOCOppmvd[1], secondaryReactor.thermo.T])
         return out
@@ -69,7 +69,7 @@ def twoStage_ideal(phi_global,phi_main,tau_global,tau_sec,airSplit=1,phiSec=None
         mainDF.index.name = 'time';
         for i in range(0, len(sec_tList)):
             MWi = secondaryReactor.thermo.mean_molecular_weight
-            NOCOppmvd = correctNOx(secondaryReactor.thermo['NO', 'CO', 'NO2', 'N2O'].X, secondaryReactor.thermo['H2O'].X, secondaryReactor.thermo['O2'].X) 
+            NOCOppmvd = correct_nox(secondaryReactor.thermo['NO', 'CO', 'NO2', 'N2O'].X, secondaryReactor.thermo['H2O'].X, secondaryReactor.thermo['O2'].X)
             # secArray[i, :] = np.hstack([vel_final * dt, vel_final, secondaryReactor.thermo.T, 0, MWi, secondaryReactor.thermo.Y, secondaryReactor.thermo.X, secondaryReactor.thermo.P])
             rn.advance(sec_tList[i])
             secArray[i,:] = np.hstack([sec_tList[i] + tau_main, secondaryReactor.thermo.T, NOCOppmvd[0], NOCOppmvd[1]])

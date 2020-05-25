@@ -3,7 +3,7 @@ import multiprocessing
 import os.path
 
 from .particle import Particle
-from .utils.CanteraTools import *
+from .utils.cantera_tools import *
 
 NUM_PROCESS = 8
 particles = {}

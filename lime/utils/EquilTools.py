@@ -1,9 +1,11 @@
-import Utils.CanteraTools as ctools 
-import cantera as ct 
+import cantera as ct
 import numpy as np 
 import os
 import pandas as pd
-fs_CH4 = 0.058387057492574147288255659304923028685152530670166015625 
+
+from lime.utils import cantera_tools as ctools
+
+fs_CH4 = 0.058387057492574147288255659304923028685152530670166015625
 
 equil_file = os.path.join(os.path.dirname(__file__), 'equil_results.pickle')
 
@@ -22,13 +24,13 @@ def equil(phi, T_air = 650, T_fuel = 300, P = 25*ct.one_atm, mech="gri30.xml"):
         NO = np.interp(phi, df['phi'].values, df['NO_ppmvd'].values)
         return np.hstack([T, CO, NO])
     
-    gas = ct.Solution(mech);  
+    gas = ct.Solution(mech)  
     m_air = 1
     m_fuel = phi*fs_CH4
-    mixture =  ctools.mix([ctools.air(T_air, P, mech), ctools.CH4(T_fuel, P, mech)], [m_air, m_fuel], mech, P)
-    mixture.equilibrate('HP');  
-    CO_ppmvd = ctools.correctNOx(mixture['CO'].X, mixture['H2O'].X, mixture['O2'].X) 
-    NO_ppmvd = ctools.correctNOx(mixture['NO'].X, mixture['H2O'].X, mixture['O2'].X) 
+    mixture = ctools.mix([ctools.air(T_air, P, mech), ctools.CH4(T_fuel, P, mech)], [m_air, m_fuel], mech, P)
+    mixture.equilibrate('HP')  
+    CO_ppmvd = ctools.correct_nox(mixture['CO'].X, mixture['H2O'].X, mixture['O2'].X)
+    NO_ppmvd = ctools.correct_nox(mixture['NO'].X, mixture['H2O'].X, mixture['O2'].X)
     return np.hstack([mixture.T, CO_ppmvd, NO_ppmvd]) 
 
 
