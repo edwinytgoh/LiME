@@ -1,0 +1,31 @@
+# default config
+
+# File I/O settings
+output_path: "runs/"
+
+# Global Combustor Configs
+phi_global: 0.635  # gives a final temperature of 1975 K w/ CH4
+tau_global_ms: 20  # global residence time in milliseconds
+P_atm: 25  # will be multiplied by 101325 Pa to get total pressure in Pa
+total_mass: 1.0  # total mass flow rate in kg/s
+mech: "gri30.yaml"
+oxidizer:   # air by default
+  O2: 0.21
+  N2: 0.79
+T_oxidizer: 650  # oxidizer preheat temperature in Kelvin
+ox_split: 0.9  # % of oxidizer going into main burner vs secondary burner
+
+# Main Burner Configs
+phi_main: 0.3719
+tau_main_ms: 19.72  # residence time of the main burner
+main_fuel:
+  CH4: 1.0
+T_fuel_main: 300  # fuel is generally at around room temp
+
+# Secondary Burner Configs
+phi_secondary: null  # will be calculated from phi_global and phi_main
+tau_secondary_ms: null  # will be calculated from tau_global_ms and tau_main_ms
+secondary_fuel:
+  CH4: 1.0
+T_ox_secondary: null  # if null, will be the same as 
+T_fuel_secondary: 300  # fuel is generally at around room temp
