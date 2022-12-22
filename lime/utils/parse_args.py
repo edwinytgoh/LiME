@@ -60,7 +60,7 @@ def parse_args(config=default_config_path, **kwargs):
         os.makedirs(args.output_path, exist_ok=True)
 
     args.f_stoich = calculate_f_stoich(args.main_fuel, args.oxidizer, mech=args.mech)
-
+    args.tau_secondary_ms = args.tau_global_ms - args.tau_main_ms
     return args
 
 
@@ -96,6 +96,8 @@ def none_or_other(value):
         return None
     elif isinstance(value, str) and value.lower() in ["inf", "infty", "infinity"]:
         return math.inf
+    elif isinstance(value, str) and value.isnumeric():
+        return float(value)
     return value
 
 
